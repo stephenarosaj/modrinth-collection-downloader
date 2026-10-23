@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { APP_NAME } from './config';
+import { services } from './services';
 import { App } from '../ui/App';
 import '../ui/styles.css';
 
@@ -11,6 +12,6 @@ if (!rootEl) {
 
 createRoot(rootEl).render(
   <StrictMode>
-    <App appName={APP_NAME} />
+    <App appName={APP_NAME} modrinthClient={services.modrinthClient} />
   </StrictMode>,
 );
