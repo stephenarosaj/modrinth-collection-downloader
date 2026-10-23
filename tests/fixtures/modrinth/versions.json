@@ -1,0 +1,1066 @@
+[
+  {
+    "id": "OihdIimA",
+    "project_id": "AANobbMI",
+    "author_id": "TEZXhE2U",
+    "featured": false,
+    "name": "Sodium 0.5.13 for Fabric",
+    "version_number": "mc1.20.1-0.5.13-fabric",
+    "date_published": "2025-03-03T17:45:49.132919Z",
+    "downloads": 12536246,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20.1"
+    ],
+    "loaders": [
+      "fabric",
+      "quilt"
+    ],
+    "files": [
+      {
+        "id": "KcvCzyWY",
+        "hashes": {
+          "sha1": "bcdbf37d9494e405cba210d7a80ed58e756297b5",
+          "sha512": "81c64f9c2d3402dfa43ee54d8f5a054f5243bfb08984e3addcab9fe885073c79c43c1c8c41e8f30b625d26a656f82a8e5f370bbbbf222ff1c08f4b324edb7ea4"
+        },
+        "url": "https://cdn.modrinth.com/data/AANobbMI/versions/OihdIimA/sodium-fabric-0.5.13%2Bmc1.20.1.jar",
+        "filename": "sodium-fabric-0.5.13+mc1.20.1.jar",
+        "primary": true,
+        "size": 971552,
+        "file_type": null
+      }
+    ],
+    "dependencies": []
+  },
+  {
+    "id": "ryOMVRuG",
+    "project_id": "AANobbMI",
+    "author_id": "TEZXhE2U",
+    "featured": false,
+    "name": "Sodium 0.5.12 (Beta 2) for Fabric 1.20.1",
+    "version_number": "mc1.20.1-0.5.12-beta.2-fabric",
+    "date_published": "2025-02-26T00:54:03.278312Z",
+    "downloads": 600621,
+    "version_type": "beta",
+    "status": "listed",
+    "game_versions": [
+      "1.20.1"
+    ],
+    "loaders": [
+      "fabric",
+      "quilt"
+    ],
+    "files": [
+      {
+        "id": "QRwpUN42",
+        "hashes": {
+          "sha1": "8f6bdf3c1fe2737f819fd4f186f5d89ad68d2e51",
+          "sha512": "e6906b77e709c17bfe445d065353010853cad58a65252f70f9e7e06113156f21c85e91a71e5ccebb4ea0f0168280737bb12ae407e115a9f1df3b5e8d21b87ec5"
+        },
+        "url": "https://cdn.modrinth.com/data/AANobbMI/versions/ryOMVRuG/sodium-fabric-0.5.12-beta.2%2Bmc1.20.1.jar",
+        "filename": "sodium-fabric-0.5.12-beta.2+mc1.20.1.jar",
+        "primary": true,
+        "size": 971376,
+        "file_type": null
+      }
+    ],
+    "dependencies": []
+  },
+  {
+    "id": "ygf8cVZg",
+    "project_id": "AANobbMI",
+    "author_id": "DzLrfrbK",
+    "featured": true,
+    "name": "Sodium 0.5.11",
+    "version_number": "mc1.20.1-0.5.11",
+    "date_published": "2024-06-29T13:43:41.842195Z",
+    "downloads": 8264370,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20.1"
+    ],
+    "loaders": [
+      "fabric",
+      "quilt"
+    ],
+    "files": [
+      {
+        "id": "WD3k9Qny",
+        "hashes": {
+          "sha1": "c4293c1483f3b39c1c6c4c69143e8bb2c6e53daf",
+          "sha512": "628129702e830fe88d79f0b87ef0591b708fb39045ce3d985703d6a3a78c30c9beb518df8e70151e55ca6c82d9274fea904c016f60085d889a4f7ac431cccd9e"
+        },
+        "url": "https://cdn.modrinth.com/data/AANobbMI/versions/ygf8cVZg/sodium-fabric-0.5.11%2Bmc1.20.1.jar",
+        "filename": "sodium-fabric-0.5.11+mc1.20.1.jar",
+        "primary": true,
+        "size": 968419,
+        "file_type": null
+      }
+    ],
+    "dependencies": []
+  },
+  {
+    "id": "rvI2dfzR",
+    "project_id": "P7dR8mSH",
+    "author_id": "JZA4dW8o",
+    "featured": false,
+    "name": "[1.20.1] Fabric API 0.92.12+1.20.1",
+    "version_number": "0.92.12+1.20.1",
+    "date_published": "2026-09-01T10:05:43.493622Z",
+    "downloads": 1817585,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20.1"
+    ],
+    "loaders": [
+      "fabric"
+    ],
+    "files": [
+      {
+        "id": "vMg9akDM",
+        "hashes": {
+          "sha1": "3e9cdd3e2f827ca9a259df9eb8e31949437b6bd4",
+          "sha512": "de9da2344043b3e9ef9fb7dbfff5f2577b06000c4f73f2a37959a80123141169084cece19133bd299b45feaaa4648bdaca2ea085684888cc8c55cc9134a477ca"
+        },
+        "url": "https://cdn.modrinth.com/data/P7dR8mSH/versions/rvI2dfzR/fabric-api-0.92.12%2B1.20.1.jar",
+        "filename": "fabric-api-0.92.12+1.20.1.jar",
+        "primary": true,
+        "size": 2137232,
+        "file_type": null
+      }
+    ],
+    "dependencies": []
+  },
+  {
+    "id": "xhLT3C5f",
+    "project_id": "P7dR8mSH",
+    "author_id": "JZA4dW8o",
+    "featured": false,
+    "name": "[1.20.1] Fabric API 0.92.11+1.20.1",
+    "version_number": "0.92.11+1.20.1",
+    "date_published": "2026-07-16T10:03:54.520184Z",
+    "downloads": 2477564,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20.1"
+    ],
+    "loaders": [
+      "fabric"
+    ],
+    "files": [
+      {
+        "id": "PNPnlElV",
+        "hashes": {
+          "sha1": "2824689367eec2b52c6085e968343751137e66bf",
+          "sha512": "fb8d9d5c5ee387b12770fcef1cb4327f1575bd21606f1a268c9eff43fd3697cf0a3af55dd688cdc913f1423737f8905e13282eb69dd69f0995c32d6e620efb3f"
+        },
+        "url": "https://cdn.modrinth.com/data/P7dR8mSH/versions/xhLT3C5f/fabric-api-0.92.11%2B1.20.1.jar",
+        "filename": "fabric-api-0.92.11+1.20.1.jar",
+        "primary": true,
+        "size": 2137144,
+        "file_type": null
+      }
+    ],
+    "dependencies": []
+  },
+  {
+    "id": "N5XeV21r",
+    "project_id": "EsAfCjCV",
+    "author_id": "qB1TNdUc",
+    "featured": false,
+    "name": "appleskin-fabric-mc1.20.1-2.5.2",
+    "version_number": "2.5.2+mc1.20.1",
+    "date_published": "2026-01-24T11:29:59.321275Z",
+    "downloads": 2616051,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20.1"
+    ],
+    "loaders": [
+      "fabric"
+    ],
+    "files": [
+      {
+        "id": "mAuTb3vE",
+        "hashes": {
+          "sha1": "f859bb13130788ae2dc2e76a9c80c89e4bbbef5f",
+          "sha512": "712ca0f86050ab3c6dbdbe62c5d9fabe77837d70529d1cd686f915a5f09d3a4f71ad4d3866984fbdded63ae2eb1c1ceedfb3386253510ee3a54857f77677e4f4"
+        },
+        "url": "https://cdn.modrinth.com/data/EsAfCjCV/versions/N5XeV21r/appleskin-fabric-mc1.20.1-2.5.2.jar",
+        "filename": "appleskin-fabric-mc1.20.1-2.5.2.jar",
+        "primary": true,
+        "size": 1097240,
+        "file_type": null
+      }
+    ],
+    "dependencies": [
+      {
+        "version_id": null,
+        "project_id": "P7dR8mSH",
+        "file_name": null,
+        "dependency_type": "required"
+      }
+    ]
+  },
+  {
+    "id": "xcauwnEB",
+    "project_id": "EsAfCjCV",
+    "author_id": "qB1TNdUc",
+    "featured": true,
+    "name": "appleskin-fabric-mc1.20.1-2.5.1",
+    "version_number": "2.5.1+mc1.20",
+    "date_published": "2023-09-27T05:11:22.074619Z",
+    "downloads": 13015493,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20",
+      "1.20.1"
+    ],
+    "loaders": [
+      "fabric"
+    ],
+    "files": [
+      {
+        "id": "UzVRDnUq",
+        "hashes": {
+          "sha1": "d0f11243f79c071416bbcee781ae93eb57a0283c",
+          "sha512": "1544c3705133694a886233bdf75b0d03c9ab489421c1f9f30e51d8dd9f4dcab5826edbef4b7d477b81ac995253c6258844579a54243422b73446f6fb8653b979"
+        },
+        "url": "https://cdn.modrinth.com/data/EsAfCjCV/versions/xcauwnEB/appleskin-fabric-mc1.20.1-2.5.1.jar",
+        "filename": "appleskin-fabric-mc1.20.1-2.5.1.jar",
+        "primary": true,
+        "size": 1064362,
+        "file_type": null
+      }
+    ],
+    "dependencies": [
+      {
+        "version_id": null,
+        "project_id": "P7dR8mSH",
+        "file_name": null,
+        "dependency_type": "required"
+      }
+    ]
+  },
+  {
+    "id": "nQHYSjxO",
+    "project_id": "Orvt0mRa",
+    "author_id": "M6f6rkfI",
+    "featured": false,
+    "name": "Indium 1.0.36 for Minecraft 1.20.x / Sodium 0.5.11",
+    "version_number": "1.0.36+mc1.20.1",
+    "date_published": "2025-02-25T22:48:55.052967Z",
+    "downloads": 7939027,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20.1",
+      "1.20.5",
+      "1.20.6"
+    ],
+    "loaders": [
+      "fabric",
+      "quilt"
+    ],
+    "files": [
+      {
+        "id": "UFpXmU1C",
+        "hashes": {
+          "sha1": "d824614e7a173d273167969f427702f51846aca7",
+          "sha512": "7c5a1851f1fc08ae69318e151d07151fabba6cda2a24616c9251e1a4e5b969453e88b97d60f926271d60e3511bfc6fa05a64a108466efb7f29bec4519547e0c9"
+        },
+        "url": "https://cdn.modrinth.com/data/Orvt0mRa/versions/nQHYSjxO/indium-1.0.36%2Bmc1.20.1.jar",
+        "filename": "indium-1.0.36+mc1.20.1.jar",
+        "primary": true,
+        "size": 105382,
+        "file_type": null
+      }
+    ],
+    "dependencies": [
+      {
+        "version_id": "ygf8cVZg",
+        "project_id": "AANobbMI",
+        "file_name": null,
+        "dependency_type": "required"
+      }
+    ]
+  },
+  {
+    "id": "dqeVoHmO",
+    "project_id": "HIuqnQpi",
+    "author_id": "kYOHYSUU",
+    "featured": false,
+    "name": "common-networking-fabric-1.0.6-1.20.1",
+    "version_number": "1.0.6-1.20.1",
+    "date_published": "2026-07-02T12:57:41.219471Z",
+    "downloads": 194211,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20.1"
+    ],
+    "loaders": [
+      "fabric",
+      "quilt"
+    ],
+    "files": [
+      {
+        "id": "5F43CMDt",
+        "hashes": {
+          "sha1": "d2c75f594bc41aaefe865c4023bd7690567fd962",
+          "sha512": "23805d01173f4c23be00c9ac2713da0b5a113c6fd40fb6cb0da243561ba2394456cabadda9735bf32574d3b4302e18cf77a8ca5aafe017a6146baeef74a797c3"
+        },
+        "url": "https://cdn.modrinth.com/data/HIuqnQpi/versions/dqeVoHmO/common-networking-fabric-1.0.6-1.20.1.jar",
+        "filename": "common-networking-fabric-1.0.6-1.20.1.jar",
+        "primary": true,
+        "size": 21810,
+        "file_type": null
+      }
+    ],
+    "dependencies": []
+  },
+  {
+    "id": "TkOARDQh",
+    "project_id": "HIuqnQpi",
+    "author_id": "kYOHYSUU",
+    "featured": false,
+    "name": "common-networking-forge-1.0.6-1.20.1",
+    "version_number": "1.0.6-1.20.1",
+    "date_published": "2026-07-02T12:57:58.817217Z",
+    "downloads": 115792,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20.1"
+    ],
+    "loaders": [
+      "forge"
+    ],
+    "files": [
+      {
+        "id": "s23RbmAn",
+        "hashes": {
+          "sha1": "68dae58372f8332d7b8596e908f85433c0e0cb0d",
+          "sha512": "91395315ec984af809036fd1ca39d98d0f0dca76a4a6f76876f0a818725965bba22c41f6fcb1fb5d4151c51eaa41e682f4eaae05c99ba1e210fc0ec4030a32a6"
+        },
+        "url": "https://cdn.modrinth.com/data/HIuqnQpi/versions/TkOARDQh/common-networking-forge-1.0.6-1.20.1.jar",
+        "filename": "common-networking-forge-1.0.6-1.20.1.jar",
+        "primary": true,
+        "size": 21680,
+        "file_type": null
+      }
+    ],
+    "dependencies": []
+  },
+  {
+    "id": "WeYhEb5d",
+    "project_id": "8oi3bsk5",
+    "author_id": "oRXQvVNJ",
+    "featured": true,
+    "name": "v2.5.4 ~ Mod 1.20.x",
+    "version_number": "2.5.4",
+    "date_published": "2024-07-07T22:15:51.167522Z",
+    "downloads": 7250252,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.20.5",
+      "1.20.6"
+    ],
+    "loaders": [
+      "fabric",
+      "forge",
+      "neoforge",
+      "quilt"
+    ],
+    "files": [
+      {
+        "id": "yiGKzGuD",
+        "hashes": {
+          "sha1": "79e1409b8db4ce86df9d6d6730f09c4bd8860a30",
+          "sha512": "885e171d8b34aae7e142f082d0364285ec5a8e8342f11c60d341f7a94083d5a42c4e30612fe4f9f64d57b484396a3dff3a224e2a2497d4ced8d22f2ad6cd561d"
+        },
+        "url": "https://cdn.modrinth.com/data/8oi3bsk5/versions/WeYhEb5d/Terralith_1.20.x_v2.5.4.jar",
+        "filename": "Terralith_1.20.x_v2.5.4.jar",
+        "primary": true,
+        "size": 3156901,
+        "file_type": null
+      }
+    ],
+    "dependencies": []
+  },
+  {
+    "id": "YFeeBgIL",
+    "project_id": "8oi3bsk5",
+    "author_id": "SR8MIsEo",
+    "featured": false,
+    "name": "v2.5.4 ~ Datapack 1.20.x",
+    "version_number": "2.5.4",
+    "date_published": "2024-09-18T08:40:37.831563Z",
+    "downloads": 118297,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.20.5",
+      "1.20.6"
+    ],
+    "loaders": [
+      "datapack"
+    ],
+    "files": [
+      {
+        "id": "awqJT3p4",
+        "hashes": {
+          "sha1": "37456bff32ffa8cd4c09afcdd571b17f1d5b2877",
+          "sha512": "0b2caddfb266d2a8eaf2a0eac3c8ad2213ad6ad940a1b9e97669bf7c618c5be6284d99c99b7b562a8daa0f5d48642884c8ee67c5091ccf4625b4ef5b3e8790cd"
+        },
+        "url": "https://cdn.modrinth.com/data/8oi3bsk5/versions/YFeeBgIL/Terralith_1.20_v2.5.4.zip",
+        "filename": "Terralith_1.20_v2.5.4.zip",
+        "primary": true,
+        "size": 3153604,
+        "file_type": null
+      }
+    ],
+    "dependencies": []
+  },
+  {
+    "id": "Wrlqaul6",
+    "project_id": "1u6JkXh5",
+    "author_id": "WGCkmIeT",
+    "featured": false,
+    "name": "WorldEdit 7.2.15 (Forge/Fabric for MC 1.20/1.20.1)",
+    "version_number": "7.2.15",
+    "date_published": "2023-10-19T01:22:00Z",
+    "downloads": 329406,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20",
+      "1.20.1"
+    ],
+    "loaders": [
+      "fabric",
+      "forge"
+    ],
+    "files": [
+      {
+        "id": "GlTPUUhn",
+        "hashes": {
+          "sha1": "9c52765ca56f917ef8cbafc20e9a4f45c346508f",
+          "sha512": "2c41dcd9a622f948ed5409eecc485018fbf274945bdd1a9c0fdf4c4954f9a47dc311e6e0f9e445180d8b771e4a40947533d67bd66feb4ab8c8f87c2880dba7ef"
+        },
+        "url": "https://cdn.modrinth.com/data/1u6JkXh5/versions/Wrlqaul6/worldedit-mod-7.2.15.jar",
+        "filename": "worldedit-mod-7.2.15.jar",
+        "primary": true,
+        "size": 5825402,
+        "file_type": null
+      }
+    ],
+    "dependencies": []
+  },
+  {
+    "id": "j8KJp1Ch",
+    "project_id": "1u6JkXh5",
+    "author_id": "WGCkmIeT",
+    "featured": false,
+    "name": "WorldEdit 7.3.1 (Bukkit for 1.20-1.20.6)",
+    "version_number": "7.3.1",
+    "date_published": "2024-05-08T10:23:49.549734Z",
+    "downloads": 159841,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.20.5",
+      "1.20.6"
+    ],
+    "loaders": [
+      "bukkit",
+      "paper",
+      "spigot"
+    ],
+    "files": [
+      {
+        "id": "q56ZvefF",
+        "hashes": {
+          "sha1": "961c674f9cf82b7fc45b05f9b2c34f71afba4587",
+          "sha512": "0205dfe179ea2a16308def212c336d87540bc7df579d74c7fa47f0c767ed26737664386f838f18cdb1d0a32b57c89d15ca6ededc62c8a2f9fe3f252e55771d4b"
+        },
+        "url": "https://cdn.modrinth.com/data/1u6JkXh5/versions/j8KJp1Ch/worldedit-bukkit-7.3.1.jar",
+        "filename": "worldedit-bukkit-7.3.1.jar",
+        "primary": true,
+        "size": 5923693,
+        "file_type": null
+      }
+    ],
+    "dependencies": []
+  },
+  {
+    "id": "puUfqBpY",
+    "project_id": "hXiIvTyT",
+    "author_id": "R5dS2mlb",
+    "featured": true,
+    "name": "2.20.1 - The Trails and Tales Update",
+    "version_number": "2.20.1",
+    "date_published": "2023-08-05T20:14:51.163791Z",
+    "downloads": 111289,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.8.8",
+      "1.9.4",
+      "1.10.2",
+      "1.11.2",
+      "1.12.2",
+      "1.13.2",
+      "1.14.4",
+      "1.15.2",
+      "1.16.5",
+      "1.17.1",
+      "1.18.2",
+      "1.19.4",
+      "1.20.1"
+    ],
+    "loaders": [
+      "bukkit",
+      "paper",
+      "spigot"
+    ],
+    "files": [
+      {
+        "id": "f81Fs1k5",
+        "hashes": {
+          "sha1": "e626f9f250470bcf2feffbc3740f738f9cee50ef",
+          "sha512": "d6453063b8197b96c5f244f5b23bd97abf75c9bd60206e1f9e40ae4bb6e93d0141a3b253dce588a6335a43f8c2c37f02d14563587668edbff0d60daac80b42ca"
+        },
+        "url": "https://cdn.modrinth.com/data/hXiIvTyT/versions/puUfqBpY/EssentialsX-2.20.1.jar",
+        "filename": "EssentialsX-2.20.1.jar",
+        "primary": true,
+        "size": 3070345,
+        "file_type": null
+      },
+      {
+        "id": "ME2zhbgT",
+        "hashes": {
+          "sha1": "189d23f6aea5b3f2b255189c1af2bd8c0d53ae60",
+          "sha512": "268fb0484721d9bf82790bcb82f58e1fb49795244636ed6e4e1643dfbe7ec78f85532999522cd5369607bef739644318580d96bbc3e321dfd0c8411a44086be0"
+        },
+        "url": "https://cdn.modrinth.com/data/hXiIvTyT/versions/puUfqBpY/EssentialsXAntiBuild-2.20.1.jar",
+        "filename": "EssentialsXAntiBuild-2.20.1.jar",
+        "primary": false,
+        "size": 18325,
+        "file_type": null
+      },
+      {
+        "id": "2N8zGPxi",
+        "hashes": {
+          "sha1": "cf5c055984b808512b2f5c23dd7c7de8806f072f",
+          "sha512": "ca64e1c7833fc01a91241ad4bab8213252047469dd01d330606b2198d5d9a6a083cc2c00489c42c3e4ff14472ec9a45a5a8d9e84d7240e9eb18d3fe10af3e3c4"
+        },
+        "url": "https://cdn.modrinth.com/data/hXiIvTyT/versions/puUfqBpY/EssentialsXChat-2.20.1.jar",
+        "filename": "EssentialsXChat-2.20.1.jar",
+        "primary": false,
+        "size": 17829,
+        "file_type": null
+      },
+      {
+        "id": "v9bXA4zZ",
+        "hashes": {
+          "sha1": "2ba790eec7cdb23f13535ee84bb6296d225c975f",
+          "sha512": "c743d549422ffc76c25fdfaa39b9d0ed493113742d79bc9474f4ca38c18e6bdd7f582aa52e97cceb12c597971d791036676de8b5c2298441f57b0e5c01fd2ddb"
+        },
+        "url": "https://cdn.modrinth.com/data/hXiIvTyT/versions/puUfqBpY/EssentialsXDiscord-2.20.1.jar",
+        "filename": "EssentialsXDiscord-2.20.1.jar",
+        "primary": false,
+        "size": 7553095,
+        "file_type": null
+      },
+      {
+        "id": "5dlrjyoD",
+        "hashes": {
+          "sha1": "db6499efe3a09d29bb08ac9a02c7603005525895",
+          "sha512": "51b07ea9f2f02749f10b4052a68f12fc810075552ceaf15e2f87416e14f2cefc67d9ee9ddaec3d2907c955cbaaf53aa40b2ffcdef915d38a706cf58e150c2a11"
+        },
+        "url": "https://cdn.modrinth.com/data/hXiIvTyT/versions/puUfqBpY/EssentialsXDiscordLink-2.20.1.jar",
+        "filename": "EssentialsXDiscordLink-2.20.1.jar",
+        "primary": false,
+        "size": 37032,
+        "file_type": null
+      },
+      {
+        "id": "dgrGC2gJ",
+        "hashes": {
+          "sha1": "38f11d64c9a067d3f5b310941d1fd66412a4965a",
+          "sha512": "4f71bc8cb042cfefd13a42a658a2f856da71a1bfa629292f3dbd2a6725f6d96f1676859814d6aa49b4a9debdab8ae8d9d529b35d9a833c9d86aea47a1a681e59"
+        },
+        "url": "https://cdn.modrinth.com/data/hXiIvTyT/versions/puUfqBpY/EssentialsXGeoIP-2.20.1.jar",
+        "filename": "EssentialsXGeoIP-2.20.1.jar",
+        "primary": false,
+        "size": 1875925,
+        "file_type": null
+      },
+      {
+        "id": "X5EhjnSM",
+        "hashes": {
+          "sha1": "186ba82dbde2829cca990ec2e7ce5d241633c30e",
+          "sha512": "b2502f22ddc61eb34ece206b4e72900ef85559e8bc2f4a2effceb457d836989f3571e9c37577572337554e8b9046339bba2b9d10c3378829fbf70b09a7e35783"
+        },
+        "url": "https://cdn.modrinth.com/data/hXiIvTyT/versions/puUfqBpY/EssentialsXProtect-2.20.1.jar",
+        "filename": "EssentialsXProtect-2.20.1.jar",
+        "primary": false,
+        "size": 25712,
+        "file_type": null
+      },
+      {
+        "id": "ENY8rGrZ",
+        "hashes": {
+          "sha1": "68dfe0e04217ecf27bb255d4a6b993ddd6c7830d",
+          "sha512": "ad12d4b00189a077da9b6b95d0e3f565cf9fba4e5404a2011beccb187816d749093d868b14134f8682082847273d732ae869852f28100b90a8cc21175afef674"
+        },
+        "url": "https://cdn.modrinth.com/data/hXiIvTyT/versions/puUfqBpY/EssentialsXSpawn-2.20.1.jar",
+        "filename": "EssentialsXSpawn-2.20.1.jar",
+        "primary": false,
+        "size": 18122,
+        "file_type": null
+      },
+      {
+        "id": "6i5b27Y4",
+        "hashes": {
+          "sha1": "9a8ab7c3b169edd22176eac62220d5eebcdd80aa",
+          "sha512": "ba57b130419293a4a8ec84b5ca09d68072b07bc8e5a918d8fb14669cb400a676b3769069f694b8e856c2decdf7a6c2b73986a972b0a885de07e946ffa673c044"
+        },
+        "url": "https://cdn.modrinth.com/data/hXiIvTyT/versions/puUfqBpY/EssentialsXXMPP-2.20.1.jar",
+        "filename": "EssentialsXXMPP-2.20.1.jar",
+        "primary": false,
+        "size": 328615,
+        "file_type": null
+      }
+    ],
+    "dependencies": []
+  },
+  {
+    "id": "NpagB1YQ",
+    "project_id": "DKY9btbd",
+    "author_id": "WGCkmIeT",
+    "featured": false,
+    "name": "WorldGuard 7.0.9 (MC 1.20 - 1.20.4)",
+    "version_number": "7.0.9",
+    "date_published": "2024-09-10T00:00:27Z",
+    "downloads": 9241,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.4"
+    ],
+    "loaders": [
+      "bukkit",
+      "paper",
+      "spigot"
+    ],
+    "files": [
+      {
+        "id": "W9qI7xmO",
+        "hashes": {
+          "sha1": "42ea9130bd6df8f3157bbbe7949c9bdcff7c0dff",
+          "sha512": "a16715f02d3e1a021c6263fc53cf6c5acee93c1509d42ace0b9681fb4b2010729547fa3da0e051be9a26332b6fcd8469a7fb64274a9c02e177356d4779c6ac62"
+        },
+        "url": "https://cdn.modrinth.com/data/DKY9btbd/versions/NpagB1YQ/worldguard-bukkit-7.0.9-dist.jar",
+        "filename": "worldguard-bukkit-7.0.9-dist.jar",
+        "primary": true,
+        "size": 1167465,
+        "file_type": null
+      }
+    ],
+    "dependencies": [
+      {
+        "version_id": null,
+        "project_id": "1u6JkXh5",
+        "file_name": null,
+        "dependency_type": "required"
+      }
+    ]
+  },
+  {
+    "id": "T3BLedpI",
+    "project_id": "VoVJ47kN",
+    "author_id": "XTAa7v2H",
+    "featured": false,
+    "name": "1.16.2",
+    "version_number": "1.16.2",
+    "date_published": "2023-07-15T00:42:05.972973Z",
+    "downloads": 60925,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20",
+      "1.20.1"
+    ],
+    "loaders": [
+      "datapack"
+    ],
+    "files": [
+      {
+        "id": "ziQFsa3a",
+        "hashes": {
+          "sha1": "d84e8e1b3e85c801046beefb46e2529567bda6b3",
+          "sha512": "8bf110a40ff42debcb936e6bc64521adc7f36397aca4b8b8fa4a8612ba7708f93fe2bb4d8bb7c6f2b408d3fbef5670ec6c1227963264bf4fb9b4170358b35349"
+        },
+        "url": "https://cdn.modrinth.com/data/VoVJ47kN/versions/T3BLedpI/BlazeandCave%27s%20Advancements%20Pack%201.16.2.zip",
+        "filename": "BlazeandCave's Advancements Pack 1.16.2.zip",
+        "primary": true,
+        "size": 3623542,
+        "file_type": null
+      }
+    ],
+    "dependencies": []
+  },
+  {
+    "id": "yGfti5w9",
+    "project_id": "VoVJ47kN",
+    "author_id": "XTAa7v2H",
+    "featured": false,
+    "name": "1.16.1",
+    "version_number": "1.16.1",
+    "date_published": "2023-06-17T01:15:12.776823Z",
+    "downloads": 3144,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20",
+      "1.20.1"
+    ],
+    "loaders": [
+      "datapack"
+    ],
+    "files": [
+      {
+        "id": "zGdTILQd",
+        "hashes": {
+          "sha1": "2711b1e6de73a085dd2a7738908324f7f8325790",
+          "sha512": "9c203415735acd9578c2fce956283a43def94527a25b4be465749625831a22bac870d3d97b19661d484e6531244b19f236447925e50f60360433935eaead5bdd"
+        },
+        "url": "https://cdn.modrinth.com/data/VoVJ47kN/versions/yGfti5w9/BlazeandCave%27s%20Advancements%20Pack%201.16.1.zip",
+        "filename": "BlazeandCave's Advancements Pack 1.16.1.zip",
+        "primary": true,
+        "size": 3622333,
+        "file_type": null
+      }
+    ],
+    "dependencies": []
+  },
+  {
+    "id": "aQjwvDfY",
+    "project_id": "50dA9Sha",
+    "author_id": "OffNOjBf",
+    "featured": false,
+    "name": "Fresh Animations 1.11.1 - 1.20+",
+    "version_number": "1.11.1",
+    "date_published": "2026-10-19T23:26:39.618065Z",
+    "downloads": 97769,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.20.5",
+      "1.20.6",
+      "1.21",
+      "1.21.1",
+      "1.21.2",
+      "1.21.3",
+      "1.21.4",
+      "1.21.5",
+      "1.21.6",
+      "1.21.7",
+      "1.21.8",
+      "1.21.9",
+      "1.21.10",
+      "1.21.11"
+    ],
+    "loaders": [
+      "minecraft"
+    ],
+    "files": [
+      {
+        "id": "xRseRCxV",
+        "hashes": {
+          "sha1": "eaf28f57dee43c469534953517501a021d28cf21",
+          "sha512": "641a03d55c36920cc9a70d891bcca3347b196968bcb5637781f21b417b1ff893ce60652abcf02be872872fc1130ccc6785155ea3b19a0ed484de714b6229c922"
+        },
+        "url": "https://cdn.modrinth.com/data/50dA9Sha/versions/aQjwvDfY/FreshAnimations_v1.11.1_1.20%2B.zip",
+        "filename": "FreshAnimations_v1.11.1_1.20+.zip",
+        "primary": true,
+        "size": 743793,
+        "file_type": null
+      }
+    ],
+    "dependencies": []
+  },
+  {
+    "id": "B1kyfoUZ",
+    "project_id": "R6NEzAwj",
+    "author_id": "O8iu3LjK",
+    "featured": false,
+    "name": "r5.9.3",
+    "version_number": "r5.9.3",
+    "date_published": "2026-09-15T06:36:17.528689Z",
+    "downloads": 2142865,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.7.10",
+      "1.8",
+      "1.8.1",
+      "1.8.2",
+      "1.8.3",
+      "1.8.4",
+      "1.8.5",
+      "1.8.6",
+      "1.8.7",
+      "1.8.8",
+      "1.8.9",
+      "1.9",
+      "1.9.1",
+      "1.9.2",
+      "1.9.3",
+      "1.9.4",
+      "1.10",
+      "1.10.1",
+      "1.10.2",
+      "1.11",
+      "1.11.1",
+      "1.11.2",
+      "1.12",
+      "1.12.1",
+      "1.12.2",
+      "1.13",
+      "1.13.1",
+      "1.13.2",
+      "1.14",
+      "1.14.1",
+      "1.14.2",
+      "1.14.3",
+      "1.14.4",
+      "1.15",
+      "1.15.1",
+      "1.15.2",
+      "1.16",
+      "1.16.1",
+      "1.16.2",
+      "1.16.3",
+      "1.16.4",
+      "1.16.5",
+      "1.17",
+      "1.17.1",
+      "1.18",
+      "1.18.1",
+      "1.18.2",
+      "1.19",
+      "1.19.1",
+      "1.19.2",
+      "1.19.3",
+      "1.19.4",
+      "1.20",
+      "1.20.1",
+      "1.20.2",
+      "1.20.3",
+      "1.20.4",
+      "1.20.5",
+      "1.20.6",
+      "1.21",
+      "1.21.1",
+      "1.21.2",
+      "1.21.3",
+      "1.21.4",
+      "1.21.5",
+      "1.21.6",
+      "1.21.7",
+      "1.21.8",
+      "1.21.9",
+      "1.21.10",
+      "1.21.11",
+      "26.1",
+      "26.1.1",
+      "26.1.2",
+      "26.2",
+      "26.3"
+    ],
+    "loaders": [
+      "iris",
+      "optifine"
+    ],
+    "files": [
+      {
+        "id": "gQPIKlO3",
+        "hashes": {
+          "sha1": "2ee08300e1d6f039e63eae8484dddf57b3aaaf67",
+          "sha512": "a085d1d8cda67cd17a2b414eeba48bbd809da069f269bab46246235ec8fe714a275013c70d0504527b0987d810deddddba4564332414ab3b3bd7435932ff808c"
+        },
+        "url": "https://cdn.modrinth.com/data/R6NEzAwj/versions/B1kyfoUZ/ComplementaryUnbound_r5.9.3.zip",
+        "filename": "ComplementaryUnbound_r5.9.3.zip",
+        "primary": true,
+        "size": 553400,
+        "file_type": null
+      }
+    ],
+    "dependencies": []
+  },
+  {
+    "id": "s5eFLITc",
+    "project_id": "YL57xq9U",
+    "author_id": "DzLrfrbK",
+    "featured": false,
+    "name": "Iris 1.7.6 for Minecraft 1.20.1",
+    "version_number": "1.7.6+1.20.1",
+    "date_published": "2025-03-03T00:22:55.778804Z",
+    "downloads": 11646989,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20.1"
+    ],
+    "loaders": [
+      "fabric",
+      "quilt"
+    ],
+    "files": [
+      {
+        "id": "vl7iVcGg",
+        "hashes": {
+          "sha1": "880c0b9ce38bb4997645793407c1801df83f4233",
+          "sha512": "f1337b0441c31269bd3bfcb28647d521326a83e73128c1ac8d065615f8a5a4ca1e8c96a468b356584236ece5b164ec8d8a52b1878064f4e391ecf4f32885e301"
+        },
+        "url": "https://cdn.modrinth.com/data/YL57xq9U/versions/s5eFLITc/iris-1.7.6%2Bmc1.20.1.jar",
+        "filename": "iris-1.7.6+mc1.20.1.jar",
+        "primary": true,
+        "size": 2726899,
+        "file_type": null
+      }
+    ],
+    "dependencies": [
+      {
+        "version_id": "ryOMVRuG",
+        "project_id": "AANobbMI",
+        "file_name": null,
+        "dependency_type": "required"
+      }
+    ]
+  },
+  {
+    "id": "NFPdxMt9",
+    "project_id": "pZ2wrerK",
+    "author_id": "TpFRtZg9",
+    "featured": false,
+    "name": "2.2.7-b.build.50",
+    "version_number": "2.2.7-b.build.50+1.20.1-fabric",
+    "date_published": "2023-07-08T23:49:39.456237Z",
+    "downloads": 3645682,
+    "version_type": "beta",
+    "status": "listed",
+    "game_versions": [
+      "1.20",
+      "1.20.1"
+    ],
+    "loaders": [
+      "fabric",
+      "quilt"
+    ],
+    "files": [
+      {
+        "id": "OgAhymOB",
+        "hashes": {
+          "sha1": "222c93e8a63a6b486f223714a5b20b2e0f206954",
+          "sha512": "7d02d00fdfa79c126cc74753cecc8fa5fb44a7035ebc90249f06985896874bc803cfe1558e867851ee53cc04a5caa473721bd99ef718780f34f264e5ed284a13"
+        },
+        "url": "https://cdn.modrinth.com/data/pZ2wrerK/versions/NFPdxMt9/emotecraft-for-MC1.20.1-2.2.7-b.build.50-fabric.jar",
+        "filename": "emotecraft-for-MC1.20.1-2.2.7-b.build.50-fabric.jar",
+        "primary": true,
+        "size": 873611,
+        "file_type": null
+      }
+    ],
+    "dependencies": [
+      {
+        "version_id": "XheZ9iGK",
+        "project_id": "P7dR8mSH",
+        "file_name": null,
+        "dependency_type": "required"
+      },
+      {
+        "version_id": null,
+        "project_id": "gedNE4y2",
+        "file_name": null,
+        "dependency_type": "embedded"
+      },
+      {
+        "version_id": null,
+        "project_id": "aRnIEV0F",
+        "file_name": null,
+        "dependency_type": "embedded"
+      },
+      {
+        "version_id": "eTCL1uh8",
+        "project_id": "mOgUt4GM",
+        "file_name": null,
+        "dependency_type": "optional"
+      }
+    ]
+  },
+  {
+    "id": "weFallbk",
+    "project_id": "1u6JkXh5",
+    "author_id": "WGCkmIeT",
+    "featured": false,
+    "name": "WorldEdit 7.2.14 (Universal Fallback)",
+    "version_number": "7.2.14",
+    "date_published": "2023-06-15T12:00:00.000000Z",
+    "downloads": 1200,
+    "version_type": "release",
+    "status": "listed",
+    "game_versions": [
+      "1.20.1"
+    ],
+    "loaders": [],
+    "files": [
+      {
+        "id": "weFallbkF",
+        "hashes": {
+          "sha1": "9c52765ca56f917ef8cbafc20e9a4f45c346508f",
+          "sha512": "2c41dcd9a622f948ed5409eecc485018fbf274945bdd1a9c0fdf4c4954f9a47dc311e6e0f9e445180d8b771e4a40947533d67bd66feb4ab8c8f87c2880dba7ef"
+        },
+        "url": "https://cdn.modrinth.com/data/1u6JkXh5/versions/weFallbk/worldedit-universal-7.2.14.jar",
+        "filename": "worldedit-universal-7.2.14.jar",
+        "primary": true,
+        "size": 5825402,
+        "file_type": null
+      }
+    ],
+    "dependencies": []
+  }
+]

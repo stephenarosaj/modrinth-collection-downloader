@@ -89,7 +89,7 @@ For platform-agnostic project types (`datapack`, `resourcepack`, `shader`), `{Pl
 | `mod` | `mods/<filename>` | Uses `toFileTree` naming convention |
 | `resourcepack` | `resourcepacks/<filename>` | Uses `toFileTree` naming convention |
 | `shader` | `shaderpacks/<filename>` | Uses `toFileTree` naming convention |
-| `datapack` | `datapacks/<filename>` | Subject to §9 VERIFY item 4 (launcher behavior documented in `docs/modrinth-api-notes.md`) |
+| `datapack` | `datapacks/<filename>` | Downloaded to `<instance_root>/datapacks/<filename>` by both the Modrinth App and Prism Launcher; requires either a global datapack loader mod (e.g., Paxi, Global Packs, Open Loader) or copying into `saves/<world>/datapacks/` (see [`docs/modrinth-api-notes.md`](modrinth-api-notes.md)) |
 | `plugin` | _Excluded_ | Excluded from `.mrpack` with a visible warning at export time |
 
 ### Environment Mapping (`files[].env`)
@@ -105,6 +105,6 @@ For each exported project:
 ### Root Dependencies (`modrinth.index.json` `dependencies`)
 
 - Always includes `"minecraft": "<gameVersion>"`.
-- **Optional Platform Version:** The UI provides an optional "Platform version" input field at export time (e.g., a specific Fabric loader version).
-  - If provided, the corresponding platform dependency key (`fabric-loader`, `quilt-loader`, `forge`, `neoforge`) is added to `dependencies`.
-  - If left blank, only `"minecraft"` is written to `dependencies` (see `docs/modrinth-api-notes.md` §4 for launcher verification details).
+- **Optional Platform Version:** The UI provides an optional "Platform version" input field at export time (e.g., a specific Fabric loader version such as `0.16.10`).
+  - If provided, the corresponding platform dependency key (`fabric` → `fabric-loader`, `quilt` → `quilt-loader`, `forge` → `forge`, `neoforge` → `neoforge`) is added to `dependencies`.
+  - If left blank (or if the target platform has no `.mrpack` dependency key), only `"minecraft"` is written to `dependencies`; Prism Launcher and the Modrinth App import the pack with the target Minecraft version and allow attaching a mod loader version in instance settings (see [`docs/modrinth-api-notes.md`](modrinth-api-notes.md) §4).

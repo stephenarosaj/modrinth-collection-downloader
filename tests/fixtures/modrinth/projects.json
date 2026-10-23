@@ -1,0 +1,639 @@
+[
+  {
+    "id": "AANobbMI",
+    "slug": "sodium",
+    "project_type": "mod",
+    "team": "4reLOAKe",
+    "organization": "LjcZDkRW",
+    "title": "Sodium",
+    "description": "A high-performance rendering engine replacement for Minecraft, which greatly improves frame rates and reduces micro-stutter.",
+    "published": "2021-01-03T00:53:34.185936Z",
+    "updated": "2026-10-15T17:51:44.107526Z",
+    "status": "approved",
+    "client_side": "required",
+    "server_side": "unsupported",
+    "environment": [
+      "client_only"
+    ],
+    "downloads": 252267676,
+    "followers": 42069,
+    "categories": [
+      "optimization"
+    ],
+    "additional_categories": [],
+    "loaders": [
+      "fabric",
+      "neoforge",
+      "quilt"
+    ],
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.4",
+      "1.21.1"
+    ],
+    "icon_url": "https://cdn.modrinth.com/data/AANobbMI/295862f4724dc3f78df3447ad6072b2dcd3ef0c9_96.webp",
+    "license": {
+      "id": "LicenseRef-Polyform-Shield-1.0.0",
+      "name": "",
+      "url": "https://github.com/CaffeineMC/sodium/blob/dev/LICENSE.md"
+    }
+  },
+  {
+    "id": "P7dR8mSH",
+    "slug": "fabric-api",
+    "project_type": "mod",
+    "team": "BZoBsPo6",
+    "organization": null,
+    "title": "Fabric API",
+    "description": "Lightweight and modular API providing common hooks and intercompatibility measures utilized by mods using the Fabric toolchain.",
+    "published": "2021-01-22T11:04:41.419169Z",
+    "updated": "2026-10-23T08:42:31.302500Z",
+    "status": "approved",
+    "client_side": "optional",
+    "server_side": "optional",
+    "environment": [
+      "client_or_server_prefers_both"
+    ],
+    "downloads": 287270061,
+    "followers": 37189,
+    "categories": [
+      "library"
+    ],
+    "additional_categories": [],
+    "loaders": [
+      "fabric"
+    ],
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.4",
+      "1.21.1"
+    ],
+    "icon_url": "https://cdn.modrinth.com/data/P7dR8mSH/icon.png",
+    "license": {
+      "id": "Apache-2.0",
+      "name": "Apache License 2.0",
+      "url": null
+    }
+  },
+  {
+    "id": "EsAfCjCV",
+    "slug": "appleskin",
+    "project_type": "mod",
+    "team": "2RI7njA8",
+    "organization": null,
+    "title": "AppleSkin",
+    "description": "Food/hunger-related HUD improvements",
+    "published": "2021-11-20T23:37:39.568172Z",
+    "updated": "2026-09-17T23:59:34.368560Z",
+    "status": "approved",
+    "client_side": "optional",
+    "server_side": "optional",
+    "environment": [
+      "client_or_server_prefers_both"
+    ],
+    "downloads": 98608437,
+    "followers": 18390,
+    "categories": [
+      "food",
+      "utility"
+    ],
+    "additional_categories": [],
+    "loaders": [
+      "fabric",
+      "forge",
+      "neoforge",
+      "quilt"
+    ],
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.4",
+      "1.21.1"
+    ],
+    "icon_url": "https://cdn.modrinth.com/data/EsAfCjCV/icon.png",
+    "license": {
+      "id": "Unlicense",
+      "name": "The Unlicense",
+      "url": null
+    }
+  },
+  {
+    "id": "Orvt0mRa",
+    "slug": "indium",
+    "project_type": "mod",
+    "team": "X5s94xjx",
+    "organization": null,
+    "title": "Indium",
+    "description": "Sodium addon providing support for the Fabric Rendering API, based on Indigo",
+    "published": "2021-07-19T17:56:39.449041Z",
+    "updated": "2025-02-25T22:48:55.052967Z",
+    "status": "approved",
+    "client_side": "required",
+    "server_side": "unsupported",
+    "environment": [
+      "client_only"
+    ],
+    "downloads": 45890642,
+    "followers": 8854,
+    "categories": [
+      "utility"
+    ],
+    "additional_categories": [],
+    "loaders": [
+      "fabric",
+      "quilt"
+    ],
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.4",
+      "1.21.1"
+    ],
+    "icon_url": "https://cdn.modrinth.com/data/Orvt0mRa/13f4ab01fac350702ba20871c9f964064073a5e2_96.webp",
+    "license": {
+      "id": "Apache-2.0",
+      "name": "Apache License 2.0",
+      "url": null
+    }
+  },
+  {
+    "id": "YL57xq9U",
+    "slug": "iris",
+    "project_type": "mod",
+    "team": "1HMZl6Mn",
+    "organization": null,
+    "title": "Iris Shaders",
+    "description": "A modern shader pack loader for Minecraft intended to be compatible with existing OptiFine shader packs",
+    "published": "2021-05-27T05:11:15.690120Z",
+    "updated": "2026-09-30T02:58:24.095409Z",
+    "status": "approved",
+    "client_side": "required",
+    "server_side": "unsupported",
+    "environment": [
+      "client_only"
+    ],
+    "downloads": 195456699,
+    "followers": 30206,
+    "categories": [
+      "decoration",
+      "optimization"
+    ],
+    "additional_categories": [],
+    "loaders": [
+      "fabric",
+      "neoforge",
+      "quilt"
+    ],
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.4",
+      "1.21.1"
+    ],
+    "icon_url": "https://cdn.modrinth.com/data/YL57xq9U/18d0e7f076d3d6ed5bedd472b853909aac5da202_96.webp",
+    "license": {
+      "id": "LGPL-3.0-only",
+      "name": "GNU Lesser General Public License v3.0 only",
+      "url": null
+    }
+  },
+  {
+    "id": "HIuqnQpi",
+    "slug": "common-network",
+    "project_type": "mod",
+    "team": "zVnG1cwg",
+    "organization": null,
+    "title": "Common Network",
+    "description": "Forge and Fabric Unified Networking Solution",
+    "published": "2023-01-10T20:05:18.080628Z",
+    "updated": "2026-09-19T17:56:47.180617Z",
+    "status": "approved",
+    "client_side": "required",
+    "server_side": "required",
+    "environment": [
+      "client_and_server"
+    ],
+    "downloads": 4504975,
+    "followers": 210,
+    "categories": [
+      "library",
+      "utility"
+    ],
+    "additional_categories": [],
+    "loaders": [
+      "bukkit",
+      "fabric",
+      "forge",
+      "neoforge",
+      "paper",
+      "quilt"
+    ],
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.4",
+      "1.21.1"
+    ],
+    "icon_url": "https://cdn.modrinth.com/data/HIuqnQpi/a869c47caa01fa0e63c88ee156c86f51ab49be74_96.webp",
+    "license": {
+      "id": "MIT",
+      "name": "MIT License",
+      "url": null
+    }
+  },
+  {
+    "id": "pZ2wrerK",
+    "slug": "emotecraft",
+    "project_type": "mod",
+    "team": "hpSSbfkk",
+    "organization": null,
+    "title": "Emotecraft",
+    "description": "Create your own emotes in Minecraft.",
+    "published": "2021-02-08T16:49:41.567984Z",
+    "updated": "2026-10-01T07:22:40.339454Z",
+    "status": "approved",
+    "client_side": "required",
+    "server_side": "optional",
+    "environment": [
+      "client_and_server",
+      "client_only_server_optional",
+      "client_or_server_prefers_both"
+    ],
+    "downloads": 7999948,
+    "followers": 2491,
+    "categories": [
+      "decoration",
+      "social"
+    ],
+    "additional_categories": [
+      "adventure",
+      "game-mechanics"
+    ],
+    "loaders": [
+      "bukkit",
+      "fabric",
+      "folia",
+      "forge",
+      "geyser",
+      "neoforge",
+      "paper",
+      "quilt"
+    ],
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.4",
+      "1.21.1"
+    ],
+    "icon_url": "https://cdn.modrinth.com/data/pZ2wrerK/eed7e2c9851392e5879c7d7cb763f142f124e6d2_96.webp",
+    "license": {
+      "id": "GPL-3.0-or-later",
+      "name": "GNU General Public License v3.0 or later",
+      "url": null
+    }
+  },
+  {
+    "id": "8oi3bsk5",
+    "slug": "terralith",
+    "project_type": "mod",
+    "team": "L2q5L80c",
+    "organization": "xdGr4sFb",
+    "title": "Terralith",
+    "description": "Explore almost 100 new biomes consisting of both realism and light fantasy, using just Vanilla blocks. Complete with several immersive structures to compliment the overhauled terrain.",
+    "published": "2022-11-13T21:48:54.507121Z",
+    "updated": "2026-09-27T20:51:14.636501Z",
+    "status": "approved",
+    "client_side": "optional",
+    "server_side": "required",
+    "environment": [
+      "server_only"
+    ],
+    "downloads": 24879722,
+    "followers": 8900,
+    "categories": [
+      "worldgen"
+    ],
+    "additional_categories": [],
+    "loaders": [
+      "datapack",
+      "fabric",
+      "forge",
+      "neoforge",
+      "quilt"
+    ],
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.4",
+      "1.21.1"
+    ],
+    "icon_url": "https://cdn.modrinth.com/data/8oi3bsk5/1959d924a1088944bbf07a06ba523726112d7e7a_96.webp",
+    "license": {
+      "id": "LicenseRef-Stardust-Labs-License",
+      "name": "",
+      "url": "https://github.com/Stardust-Labs-MC/license/blob/main/license.txt"
+    }
+  },
+  {
+    "id": "1u6JkXh5",
+    "slug": "worldedit",
+    "project_type": "mod",
+    "team": "onM88Ia7",
+    "organization": "TmFQVfk0",
+    "title": "WorldEdit",
+    "description": "A Minecraft Map Editor... that runs in-game!\nWith selections, schematics, copy and paste, brushes, and scripting.\nUse it in creative, or use it temporarily in survival.",
+    "published": "2023-10-17T11:17:40.236375Z",
+    "updated": "2026-10-15T04:02:42.340252Z",
+    "status": "approved",
+    "client_side": "unknown",
+    "server_side": "unknown",
+    "environment": [
+      "server_only"
+    ],
+    "downloads": 11892986,
+    "followers": 4940,
+    "categories": [
+      "library",
+      "management",
+      "utility"
+    ],
+    "additional_categories": [],
+    "loaders": [
+      "bukkit",
+      "fabric",
+      "folia",
+      "forge",
+      "neoforge",
+      "paper",
+      "quilt",
+      "spigot"
+    ],
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.4",
+      "1.21.1"
+    ],
+    "icon_url": "https://cdn.modrinth.com/data/1u6JkXh5/30698991048ced77e60c4e8284007d3782f2e6a3_96.webp",
+    "license": {
+      "id": "GPL-3.0-only",
+      "name": "GNU General Public License v3.0 only",
+      "url": "https://github.com/EngineHub/WorldEdit/blob/master/LICENSE.txt"
+    }
+  },
+  {
+    "id": "hXiIvTyT",
+    "slug": "essentialsx",
+    "project_type": "mod",
+    "team": "XFKJyide",
+    "organization": null,
+    "title": "EssentialsX",
+    "description": "The essential plugin suite for Paper and Spigot servers.",
+    "published": "2022-08-14T20:25:21.385783Z",
+    "updated": "2026-05-31T15:05:35.376401Z",
+    "status": "approved",
+    "client_side": "unsupported",
+    "server_side": "required",
+    "environment": [],
+    "downloads": 928650,
+    "followers": 821,
+    "categories": [
+      "economy",
+      "social",
+      "utility"
+    ],
+    "additional_categories": [
+      "game-mechanics",
+      "management",
+      "transportation"
+    ],
+    "loaders": [
+      "bukkit",
+      "paper",
+      "spigot"
+    ],
+    "game_versions": [
+      "1.20.1"
+    ],
+    "icon_url": "https://cdn.modrinth.com/data/hXiIvTyT/e621675be1d0421b43b65ab8082507532d937009_96.webp",
+    "license": {
+      "id": "GPL-3.0-only",
+      "name": "GNU General Public License v3.0 only",
+      "url": null
+    }
+  },
+  {
+    "id": "DKY9btbd",
+    "slug": "worldguard",
+    "project_type": "mod",
+    "team": "x52pg5zS",
+    "organization": "TmFQVfk0",
+    "title": "WorldGuard",
+    "description": "WorldGuard lets you and players guard areas of land against griefers and undesirables as well as tweak and disable various gameplay features of Minecraft.",
+    "published": "2024-09-10T23:38:45.613070Z",
+    "updated": "2026-10-17T06:46:20.251214Z",
+    "status": "approved",
+    "client_side": "unsupported",
+    "server_side": "required",
+    "environment": [],
+    "downloads": 995011,
+    "followers": 705,
+    "categories": [
+      "library",
+      "management",
+      "utility"
+    ],
+    "additional_categories": [],
+    "loaders": [
+      "bukkit",
+      "folia",
+      "paper",
+      "spigot"
+    ],
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.4",
+      "1.21.1"
+    ],
+    "icon_url": "https://cdn.modrinth.com/data/DKY9btbd/e1281ffadc4e194780bd31eb89ae6ea2537ec41b_96.webp",
+    "license": {
+      "id": "LGPL-3.0-only",
+      "name": "GNU Lesser General Public License v3.0 only",
+      "url": null
+    }
+  },
+  {
+    "id": "VoVJ47kN",
+    "slug": "blazeandcaves-advancements-pack",
+    "project_type": "mod",
+    "team": "Vf0xG7Xy",
+    "organization": null,
+    "title": "BlazeandCave's Advancements Pack",
+    "description": "Adds over 900 new advancements to your Minecraft world",
+    "published": "2023-01-08T22:16:00.242905Z",
+    "updated": "2026-09-16T07:12:13.094893Z",
+    "status": "approved",
+    "client_side": "optional",
+    "server_side": "required",
+    "environment": [],
+    "downloads": 715403,
+    "followers": 1305,
+    "categories": [
+      "adventure",
+      "game-mechanics",
+      "utility"
+    ],
+    "additional_categories": [],
+    "loaders": [
+      "datapack"
+    ],
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.4",
+      "1.21.1"
+    ],
+    "icon_url": "https://cdn.modrinth.com/data/VoVJ47kN/88a39593e6ef876d0a22ebb3fcfa398c223bea3c.png",
+    "license": {
+      "id": "LicenseRef-All-Rights-Reserved",
+      "name": "",
+      "url": null
+    }
+  },
+  {
+    "id": "50dA9Sha",
+    "slug": "fresh-animations",
+    "project_type": "resourcepack",
+    "team": "1PSFd9lr",
+    "organization": null,
+    "title": "Fresh Animations",
+    "description": "Make your game like the trailers! Dynamic animated entities to freshen your Minecraft experience.",
+    "published": "2022-08-29T01:33:56.443874Z",
+    "updated": "2026-10-20T02:23:13.605095Z",
+    "status": "approved",
+    "client_side": "required",
+    "server_side": "unsupported",
+    "environment": [],
+    "downloads": 51624850,
+    "followers": 14621,
+    "categories": [
+      "entities",
+      "tweaks",
+      "vanilla-like"
+    ],
+    "additional_categories": [
+      "16x",
+      "models",
+      "realistic"
+    ],
+    "loaders": [
+      "minecraft"
+    ],
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.4",
+      "1.21.1"
+    ],
+    "icon_url": "https://cdn.modrinth.com/data/50dA9Sha/3132c10e9e3c73fde9799720fd3da5561071708c_96.webp",
+    "license": {
+      "id": "LicenseRef-See-Terms-of-Use-in-Description",
+      "name": "",
+      "url": null
+    }
+  },
+  {
+    "id": "R6NEzAwj",
+    "slug": "complementary-unbound",
+    "project_type": "shader",
+    "team": "2AJsl7tB",
+    "organization": null,
+    "title": "Complementary Shaders - Unbound",
+    "description": "Transforming the visuals of Minecraft with exceptional quality, detail, and performance.",
+    "published": "2022-12-22T18:59:35.499684Z",
+    "updated": "2026-09-15T06:36:17.528689Z",
+    "status": "approved",
+    "client_side": "required",
+    "server_side": "unsupported",
+    "environment": [],
+    "downloads": 47068984,
+    "followers": 6032,
+    "categories": [
+      "colored-lighting",
+      "fantasy"
+    ],
+    "additional_categories": [
+      "atmosphere",
+      "bloom",
+      "cartoon",
+      "foliage",
+      "high",
+      "low",
+      "medium",
+      "pbr",
+      "potato",
+      "reflections",
+      "semi-realistic",
+      "shadows"
+    ],
+    "loaders": [
+      "iris",
+      "optifine"
+    ],
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.4",
+      "1.21.1"
+    ],
+    "icon_url": "https://cdn.modrinth.com/data/R6NEzAwj/c85ce4049aac76360d2cd24fd9a7003de01ef312_96.webp",
+    "license": {
+      "id": "LicenseRef-Custom",
+      "name": "",
+      "url": "https://github.com/ComplementaryDevelopment/ComplementaryShadersV4/blob/main/License.txt"
+    }
+  },
+  {
+    "id": "1KVo5zza",
+    "slug": "fabulously-optimized",
+    "project_type": "modpack",
+    "team": "f4TW0oYF",
+    "organization": "d8z9840y",
+    "title": "Fabulously Optimized",
+    "description": "Beautiful graphics, speedy performance and familiar features in a simple package. Wilderness Bound beta!",
+    "published": "2022-02-10T06:28:19.045034Z",
+    "updated": "2026-10-20T19:07:32.683497Z",
+    "status": "approved",
+    "client_side": "required",
+    "server_side": "unsupported",
+    "environment": [
+      "client_only"
+    ],
+    "downloads": 19220914,
+    "followers": 4996,
+    "categories": [
+      "lightweight",
+      "multiplayer",
+      "optimization"
+    ],
+    "additional_categories": [],
+    "loaders": [
+      "fabric"
+    ],
+    "game_versions": [
+      "1.20",
+      "1.20.1",
+      "1.20.4",
+      "1.21.1"
+    ],
+    "icon_url": "https://cdn.modrinth.com/data/1KVo5zza/d8152911f8fd5d7e9a8c499fe89045af81fe816e_96.webp",
+    "license": {
+      "id": "BSD-3-Clause",
+      "name": "BSD 3-Clause \"New\" or \"Revised\" License",
+      "url": "https://raw.githubusercontent.com/Fabulously-Optimized/fabulously-optimized/refs/heads/main/LICENSE.md"
+    }
+  }
+]
