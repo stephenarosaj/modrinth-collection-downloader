@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   CORE_SCHEMA_VERSION,
+  ENVIRONMENTS,
   changeEntryVersion,
+  computeEntryStatus,
   deselectAllInTable,
   deselectEntry,
   formatPlatformDisplayName,
@@ -23,10 +25,7 @@ import type { ModrinthClient } from '../ports';
 import { AutoSelectToast, formatAutoSelectChanges } from './components/AutoSelectToast';
 import { ConfirmReResolveDialog } from './components/ConfirmReResolveDialog';
 import { EntryTables } from './components/EntryTables';
-import {
-  EnvironmentTogglesBar,
-  type ActiveEnvironments,
-} from './components/EnvironmentTogglesBar';
+import { EnvironmentTogglesBar, type ActiveEnvironments } from './components/EnvironmentTogglesBar';
 import { ResolveProgressPanel } from './components/ResolveProgressPanel';
 import { SkippedSection } from './components/SkippedSection';
 import { TargetForm, type TargetFormValues } from './components/TargetForm';
@@ -79,13 +78,13 @@ export function App({
   const [activeEnvironments, setActiveEnvironments] = useState<ActiveEnvironments>(
     INITIAL_ACTIVE_ENVIRONMENTS,
   );
-  const [flashingCells, setFlashingCells] = useState<ReadonlySet<string>>(
-    () => new Set<string>(),
-  );
+  const [flashingCells, setFlashingCells] = useState<ReadonlySet<string>>(() => new Set<string>());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [pendingReResolve, setPendingReResolve] = useState<TargetFormValues | null>(null);
   const [revertToken, setRevertToken] = useState(0);
 
+  const instanceRef = useRef<Instance | null>(instance);
+  instanceRef.current = instance;
   const abortControllerRef = useRef<AbortController | null>(null);
   const versionAbortControllerRef = useRef<AbortController | null>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -149,6 +148,7 @@ export function App({
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
+      instanceRef.current = null;
       setInstance(null);
       setResolveSkipped([]);
       setExportError(null);
@@ -186,6 +186,7 @@ export function App({
         }
 
         abortControllerRef.current = null;
+        instanceRef.current = result.instance;
         setInstance(result.instance);
         setResolveSkipped(result.skipped);
         setActiveEnvironments(INITIAL_ACTIVE_ENVIRONMENTS);
@@ -248,42 +249,48 @@ export function App({
 
   const handleToggleEntrySelection = useCallback(
     (projectId: string, env: EnvironmentId, selected: boolean) => {
-      if (!instance) {
+      const currentInstance = instanceRef.current;
+      if (!currentInstance) {
         return;
       }
       const result = selected
-        ? selectEntry(instance, projectId, env)
-        : deselectEntry(instance, projectId, env);
+        ? selectEntry(currentInstance, projectId, env)
+        : deselectEntry(currentInstance, projectId, env);
+      instanceRef.current = result.instance;
       setInstance(result.instance);
       applyChangesFeedback(result.changes);
     },
-    [instance, applyChangesFeedback],
+    [applyChangesFeedback],
   );
 
   const handleToggleSelectAll = useCallback(
     (projectType: ExportableProjectType, env: EnvironmentId, selectAll: boolean) => {
-      if (!instance) {
+      const currentInstance = instanceRef.current;
+      if (!currentInstance) {
         return;
       }
       const result = selectAll
-        ? selectAllInTable(instance, projectType, env)
-        : deselectAllInTable(instance, projectType, env);
+        ? selectAllInTable(currentInstance, projectType, env)
+        : deselectAllInTable(currentInstance, projectType, env);
+      instanceRef.current = result.instance;
       setInstance(result.instance);
       applyChangesFeedback(result.changes);
     },
-    [instance, applyChangesFeedback],
+    [applyChangesFeedback],
   );
 
   const handleChangeEntryVersion = useCallback(
     async (projectId: string, env: EnvironmentId, versionId: string) => {
-      if (!instance) {
+      const currentInstance = instanceRef.current;
+      if (!currentInstance) {
         return;
       }
 
       setExportError(null);
 
       if (!modrinthClient) {
-        const result = setEntryVersion(instance, projectId, env, versionId);
+        const result = setEntryVersion(currentInstance, projectId, env, versionId);
+        instanceRef.current = result.instance;
         setInstance(result.instance);
         applyChangesFeedback(result.changes);
         return;
@@ -295,7 +302,7 @@ export function App({
       setIsRecomputing(true);
 
       try {
-        const result = await changeEntryVersion(instance, modrinthClient, {
+        const result = await changeEntryVersion(currentInstance, modrinthClient, {
           projectId,
           env,
           versionId,
@@ -308,6 +315,7 @@ export function App({
 
         versionAbortControllerRef.current = null;
         setIsRecomputing(false);
+        instanceRef.current = result.instance;
         setInstance(result.instance);
         applyChangesFeedback(result.changes);
       } catch (err: unknown) {
@@ -323,7 +331,7 @@ export function App({
         setExportError(message || 'Failed to recompute dependency closure.');
       }
     },
-    [instance, modrinthClient, applyChangesFeedback],
+    [modrinthClient, applyChangesFeedback],
   );
 
   const handleExportJson = useCallback(() => {
@@ -340,6 +348,16 @@ export function App({
   }, [instance, onExportJson]);
 
   const tables = useMemo(() => (instance ? toTables(instance) : []), [instance]);
+
+  const activeEnvironmentIds = useMemo<EnvironmentId[]>(
+    () => ENVIRONMENTS.filter((env) => activeEnvironments[env]),
+    [activeEnvironments],
+  );
+
+  const entryStatuses = useMemo(
+    () => (instance ? computeEntryStatus(instance, activeEnvironmentIds) : undefined),
+    [instance, activeEnvironmentIds],
+  );
 
   const combinedSkipped = useMemo(() => {
     if (!instance) {
@@ -425,10 +443,7 @@ export function App({
               disabled={isResolving || isRecomputing}
             />
 
-            <AutoSelectToast
-              message={toastMessage}
-              onDismiss={() => setToastMessage(null)}
-            />
+            <AutoSelectToast message={toastMessage} onDismiss={() => setToastMessage(null)} />
 
             {exportError && (
               <div className="alert alert-error" role="alert">
@@ -439,6 +454,7 @@ export function App({
             <EntryTables
               tables={tables}
               instance={instance}
+              entryStatuses={entryStatuses}
               targetPlatform={instance.meta.target.platform}
               activeEnvironments={activeEnvironments}
               flashingCells={flashingCells}

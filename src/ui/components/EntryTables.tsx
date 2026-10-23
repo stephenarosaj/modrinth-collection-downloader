@@ -1,25 +1,33 @@
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import {
+  CORE_SCHEMA_VERSION,
+  ENVIRONMENTS,
+  computeEntryStatus,
   computeHeaderTriState,
+  formatCellStatusTooltip,
   formatPlatformDisplayName,
   getHeaderTriState,
   isSelectable,
   isUnverifiedPlatformCandidate,
+  type EntryStatus,
   type EnvironmentId,
   type EnvironmentState,
   type ExportableProjectType,
   type HeaderTriState,
   type Instance,
   type ProjectType,
+  type Status,
   type TableModel,
   type TableRow,
   type VersionRef,
 } from '../../core';
 import type { ActiveEnvironments } from './EnvironmentTogglesBar';
+import { StatusSymbol } from './StatusSymbol';
 
 export interface EntryTablesProps {
   tables: readonly TableModel[];
   instance?: Instance | null;
+  entryStatuses?: ReadonlyMap<string, EntryStatus>;
   targetPlatform?: string;
   activeEnvironments?: ActiveEnvironments;
   flashingCells?: ReadonlySet<string>;
@@ -101,11 +109,7 @@ function HeaderSelectAllCell({
   }, [triState]);
 
   return (
-    <th
-      scope="col"
-      className={`col-env ${!isActive ? 'env-col-inactive' : ''}`}
-      data-env={env}
-    >
+    <th scope="col" className={`col-env ${!isActive ? 'env-col-inactive' : ''}`} data-env={env}>
       <div className="th-env-header">
         <input
           ref={(el) => {
@@ -128,17 +132,102 @@ function HeaderSelectAllCell({
   );
 }
 
+function areStringArraysEqual(a: readonly string[], b: readonly string[]): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function areStatusesEqual(a: Status | null, b: Status | null): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (a === null || b === null) {
+    return false;
+  }
+  return a.kind === b.kind && areStringArraysEqual(a.reasons, b.reasons);
+}
+
+function areEntryStatusesEqual(a: EntryStatus | undefined, b: EntryStatus | undefined): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (a === undefined || b === undefined) {
+    return false;
+  }
+  return (
+    areStatusesEqual(a.client, b.client) &&
+    areStatusesEqual(a.server, b.server) &&
+    areStatusesEqual(a.row, b.row)
+  );
+}
+
+function areCandidatesEqual(a: readonly VersionRef[], b: readonly VersionRef[]): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (a.length !== b.length) {
+    return false;
+  }
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i]?.id !== b[i]?.id) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function areEnvironmentStatesEqual(a: EnvironmentState, b: EnvironmentState): boolean {
+  if (a === b) {
+    return true;
+  }
+  return (
+    a.support === b.support &&
+    (a.version?.id ?? null) === (b.version?.id ?? null) &&
+    a.resolution === b.resolution &&
+    a.selection.on === b.selection.on &&
+    a.selection.source === b.selection.source &&
+    areCandidatesEqual(a.candidates, b.candidates)
+  );
+}
+
 interface EnvironmentCellProps {
   projectId: string;
   projectTitle: string;
   projectType: ProjectType;
   env: EnvironmentId;
   envState: EnvironmentState;
+  cellStatus: Status | null;
   isActive: boolean;
   isFlashing: boolean;
   isRecomputing: boolean;
   onToggleEntrySelection?: (projectId: string, env: EnvironmentId, selected: boolean) => void;
   onChangeEntryVersion?: (projectId: string, env: EnvironmentId, versionId: string) => void;
+}
+
+function areEnvCellPropsEqual(prev: EnvironmentCellProps, next: EnvironmentCellProps): boolean {
+  return (
+    prev.projectId === next.projectId &&
+    prev.projectTitle === next.projectTitle &&
+    prev.projectType === next.projectType &&
+    prev.env === next.env &&
+    prev.isActive === next.isActive &&
+    prev.isFlashing === next.isFlashing &&
+    prev.isRecomputing === next.isRecomputing &&
+    prev.onToggleEntrySelection === next.onToggleEntrySelection &&
+    prev.onChangeEntryVersion === next.onChangeEntryVersion &&
+    areEnvironmentStatesEqual(prev.envState, next.envState) &&
+    areStatusesEqual(prev.cellStatus, next.cellStatus)
+  );
 }
 
 const EnvironmentCell = memo(function EnvironmentCell({
@@ -147,6 +236,7 @@ const EnvironmentCell = memo(function EnvironmentCell({
   projectType,
   env,
   envState,
+  cellStatus,
   isActive,
   isFlashing,
   isRecomputing,
@@ -154,11 +244,17 @@ const EnvironmentCell = memo(function EnvironmentCell({
   onChangeEntryVersion,
 }: EnvironmentCellProps) {
   const envLabel = env === 'client' ? 'Client' : 'Server';
+  const cellKind = cellStatus?.kind ?? 'none';
+  const cellReasons = cellStatus?.reasons.join(',') ?? '';
+  const hasRing = Boolean(cellStatus && cellStatus.kind !== 'ok');
+  const cellTooltip = hasRing ? formatCellStatusTooltip(cellStatus, env) : undefined;
+
   const baseClassName = [
     'col-env',
     'env-cell',
     !isActive ? 'env-col-inactive' : '',
     isFlashing ? 'env-cell-flash' : '',
+    hasRing && cellStatus ? `env-cell-ring env-cell-ring-${cellStatus.kind}` : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -168,7 +264,10 @@ const EnvironmentCell = memo(function EnvironmentCell({
       <td
         className={`${baseClassName} env-cell-unsupported`}
         data-env={env}
+        data-cell-status={cellKind}
+        data-cell-reasons={cellReasons}
         data-flashing={isFlashing ? 'true' : undefined}
+        title={cellTooltip}
       >
         <span className="env-unsupported" aria-label="Unsupported">
           ✗
@@ -182,7 +281,10 @@ const EnvironmentCell = memo(function EnvironmentCell({
       <td
         className={`${baseClassName} env-cell-missing`}
         data-env={env}
+        data-cell-status={cellKind}
+        data-cell-reasons={cellReasons}
         data-flashing={isFlashing ? 'true' : undefined}
+        title={cellTooltip}
       >
         <span className="env-no-version">No compatible version</span>
         <span className={`badge badge-support badge-support-${envState.support}`}>
@@ -201,7 +303,10 @@ const EnvironmentCell = memo(function EnvironmentCell({
     <td
       className={baseClassName}
       data-env={env}
+      data-cell-status={cellKind}
+      data-cell-reasons={cellReasons}
       data-flashing={isFlashing ? 'true' : undefined}
+      title={cellTooltip}
     >
       <div className="env-cell-controls">
         <input
@@ -248,10 +353,11 @@ const EnvironmentCell = memo(function EnvironmentCell({
       </div>
     </td>
   );
-});
+}, areEnvCellPropsEqual);
 
 interface EntryTableRowProps {
   row: TableRow;
+  entryStatus: EntryStatus | undefined;
   activeEnvironments: ActiveEnvironments;
   clientFlashing: boolean;
   serverFlashing: boolean;
@@ -261,8 +367,42 @@ interface EntryTableRowProps {
   onChangeEntryVersion?: (projectId: string, env: EnvironmentId, versionId: string) => void;
 }
 
+function areTableRowsEqual(a: TableRow, b: TableRow): boolean {
+  if (a === b) {
+    return true;
+  }
+  return (
+    a.project.id === b.project.id &&
+    a.project.title === b.project.title &&
+    a.project.type === b.project.type &&
+    a.project.modrinthUrl === b.project.modrinthUrl &&
+    a.origin === b.origin &&
+    a.platform === b.platform &&
+    areStringArraysEqual(a.requiredByTitles.client, b.requiredByTitles.client) &&
+    areStringArraysEqual(a.requiredByTitles.server, b.requiredByTitles.server) &&
+    areEnvironmentStatesEqual(a.environments.client, b.environments.client) &&
+    areEnvironmentStatesEqual(a.environments.server, b.environments.server)
+  );
+}
+
+function areEntryRowPropsEqual(prev: EntryTableRowProps, next: EntryTableRowProps): boolean {
+  return (
+    (prev.isDependency ?? false) === (next.isDependency ?? false) &&
+    prev.activeEnvironments.client === next.activeEnvironments.client &&
+    prev.activeEnvironments.server === next.activeEnvironments.server &&
+    prev.clientFlashing === next.clientFlashing &&
+    prev.serverFlashing === next.serverFlashing &&
+    prev.isRecomputing === next.isRecomputing &&
+    prev.onToggleEntrySelection === next.onToggleEntrySelection &&
+    prev.onChangeEntryVersion === next.onChangeEntryVersion &&
+    areTableRowsEqual(prev.row, next.row) &&
+    areEntryStatusesEqual(prev.entryStatus, next.entryStatus)
+  );
+}
+
 const EntryTableRow = memo(function EntryTableRow({
   row,
+  entryStatus,
   activeEnvironments,
   clientFlashing,
   serverFlashing,
@@ -274,13 +414,33 @@ const EntryTableRow = memo(function EntryTableRow({
   const platformLabel = row.platform ? formatPlatformDisplayName(row.platform) : '—';
   const clientRequiredBy = row.requiredByTitles.client;
   const serverRequiredBy = row.requiredByTitles.server;
+  const rowStatus = entryStatus?.row ?? null;
+  const rowStatusKind = rowStatus?.kind ?? 'none';
+
+  const rowClassName = [
+    'entry-row',
+    isDependency ? 'entry-row-dependency' : '',
+    rowStatus && rowStatus.kind !== 'ok' ? `row-tint row-tint-${rowStatus.kind}` : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <tr
-      className={isDependency ? 'entry-row entry-row-dependency' : 'entry-row'}
+      className={rowClassName}
       data-project-id={row.project.id}
       data-origin={row.origin}
+      data-row-status={rowStatusKind}
     >
+      <td className="col-status" data-row-status={rowStatusKind}>
+        {entryStatus && entryStatus.row !== null ? (
+          <StatusSymbol
+            projectId={row.project.id}
+            projectTitle={row.project.title}
+            entryStatus={entryStatus}
+          />
+        ) : null}
+      </td>
       <td className="name-cell">
         <div className="project-header">
           <span className="project-title">{row.project.title}</span>
@@ -316,6 +476,7 @@ const EntryTableRow = memo(function EntryTableRow({
         projectType={row.project.type}
         env="client"
         envState={row.environments.client}
+        cellStatus={entryStatus?.client ?? null}
         isActive={activeEnvironments.client}
         isFlashing={clientFlashing}
         isRecomputing={isRecomputing}
@@ -328,6 +489,7 @@ const EntryTableRow = memo(function EntryTableRow({
         projectType={row.project.type}
         env="server"
         envState={row.environments.server}
+        cellStatus={entryStatus?.server ?? null}
         isActive={activeEnvironments.server}
         isFlashing={serverFlashing}
         isRecomputing={isRecomputing}
@@ -336,11 +498,13 @@ const EntryTableRow = memo(function EntryTableRow({
       />
     </tr>
   );
-});
+}, areEntryRowPropsEqual);
 
 export function EntryTables({
   tables,
   instance = null,
+  entryStatuses,
+  targetPlatform = 'fabric',
   activeEnvironments = DEFAULT_ACTIVE_ENVIRONMENTS,
   flashingCells = EMPTY_FLASHING_SET,
   isRecomputing = false,
@@ -348,6 +512,41 @@ export function EntryTables({
   onToggleSelectAll,
   onChangeEntryVersion,
 }: EntryTablesProps) {
+  const activeEnvironmentIds = useMemo<EnvironmentId[]>(
+    () => ENVIRONMENTS.filter((env) => activeEnvironments[env]),
+    [activeEnvironments],
+  );
+
+  const resolvedEntryStatuses = useMemo<ReadonlyMap<string, EntryStatus>>(() => {
+    if (entryStatuses) {
+      return entryStatuses;
+    }
+    if (instance) {
+      return computeEntryStatus(instance, activeEnvironmentIds);
+    }
+    if (tables.length === 0) {
+      return new Map<string, EntryStatus>();
+    }
+    const fallbackInstance: Instance = {
+      schemaVersion: CORE_SCHEMA_VERSION,
+      meta: {
+        name: '',
+        source: { collectionId: '', url: '' },
+        target: {
+          gameVersion: '',
+          platform: targetPlatform,
+          releasePreference: 'stable',
+        },
+        createdAt: '',
+      },
+      entries: tables.flatMap((t) => [
+        ...t.rows.map((r) => r.entry),
+        ...t.dependencies.map((r) => r.entry),
+      ]),
+    };
+    return computeEntryStatus(fallbackInstance, activeEnvironmentIds);
+  }, [entryStatuses, instance, tables, targetPlatform, activeEnvironmentIds]);
+
   if (tables.length === 0) {
     return (
       <div className="empty-tables card">
@@ -366,12 +565,8 @@ export function EntryTables({
         const serverTriState = instance
           ? getHeaderTriState(instance, table.type, 'server')
           : computeHeaderTriState(table.rows.map((r) => r.environments.server));
-        const hasSelectableClientRows = table.rows.some((r) =>
-          isSelectable(r.environments.client),
-        );
-        const hasSelectableServerRows = table.rows.some((r) =>
-          isSelectable(r.environments.server),
-        );
+        const hasSelectableClientRows = table.rows.some((r) => isSelectable(r.environments.client));
+        const hasSelectableServerRows = table.rows.some((r) => isSelectable(r.environments.server));
 
         return (
           <section
@@ -399,6 +594,9 @@ export function EntryTables({
               <table className="entry-table" aria-label={`${heading} table`}>
                 <thead>
                   <tr>
+                    <th scope="col" className="col-status" aria-label="Status">
+                      <span className="sr-only">Status</span>
+                    </th>
                     <th scope="col">Name</th>
                     <th scope="col">Platform</th>
                     <HeaderSelectAllCell
@@ -408,9 +606,7 @@ export function EntryTables({
                       hasSelectableCollectionRows={hasSelectableClientRows}
                       isActive={activeEnvironments.client}
                       isRecomputing={isRecomputing}
-                      onToggle={(selectAll) =>
-                        onToggleSelectAll?.(table.type, 'client', selectAll)
-                      }
+                      onToggle={(selectAll) => onToggleSelectAll?.(table.type, 'client', selectAll)}
                     />
                     <HeaderSelectAllCell
                       env="server"
@@ -419,9 +615,7 @@ export function EntryTables({
                       hasSelectableCollectionRows={hasSelectableServerRows}
                       isActive={activeEnvironments.server}
                       isRecomputing={isRecomputing}
-                      onToggle={(selectAll) =>
-                        onToggleSelectAll?.(table.type, 'server', selectAll)
-                      }
+                      onToggle={(selectAll) => onToggleSelectAll?.(table.type, 'server', selectAll)}
                     />
                   </tr>
                 </thead>
@@ -430,6 +624,7 @@ export function EntryTables({
                     <EntryTableRow
                       key={row.project.id}
                       row={row}
+                      entryStatus={resolvedEntryStatuses.get(row.project.id)}
                       activeEnvironments={activeEnvironments}
                       clientFlashing={flashingCells.has(`${row.project.id}:client`)}
                       serverFlashing={flashingCells.has(`${row.project.id}:server`)}
@@ -442,7 +637,7 @@ export function EntryTables({
                 {table.dependencies.length > 0 && (
                   <tbody className="dependencies-body">
                     <tr className="dependencies-divider">
-                      <th colSpan={4} scope="rowgroup">
+                      <th colSpan={5} scope="rowgroup">
                         Dependencies
                       </th>
                     </tr>
@@ -450,6 +645,7 @@ export function EntryTables({
                       <EntryTableRow
                         key={depRow.project.id}
                         row={depRow}
+                        entryStatus={resolvedEntryStatuses.get(depRow.project.id)}
                         activeEnvironments={activeEnvironments}
                         clientFlashing={flashingCells.has(`${depRow.project.id}:client`)}
                         serverFlashing={flashingCells.has(`${depRow.project.id}:server`)}

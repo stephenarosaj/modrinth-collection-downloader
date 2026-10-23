@@ -67,6 +67,8 @@ Only project types that have at least one resolved collection entry or visible d
 
 Each project-type table contains the following columns:
 
+- **Status Column (Thin Unnamed Left Column):**
+  - Displays the row's overall status symbol (`✓`, amber `⚠`, red `⚠` with `!`, or purple `?`) representing the highest-priority status across **active** (toggled-on) environments. While both **Client** and **Server** toggles are off, this column remains blank. See [Section 9 — Status Symbols, Tooltips & Visual Highlights](#9-status-symbols-tooltips--visual-highlights) for full details.
 - **Name:**
   - Displays the project's title (`project.title`).
   - Includes an **Open on Modrinth ↗** link (`https://modrinth.com/<type>/<slug>`) that opens the project page in a new tab.
@@ -74,7 +76,7 @@ Each project-type table contains the following columns:
   - For platform-specific project types (`Mods` and `Plugins`), displays the target **Platform** (e.g., `Fabric`, `NeoForge`, `Paper`).
   - For platform-agnostic project types (`Datapacks`, `Resource Packs`, and `Shaders`), displays `—` because those formats depend only on the **Game Version**.
 - **Client** and **Server** (Environment Columns):
-  - Every project is evaluated independently for the `client` and `server` **environments**. Each environment column has its own support level, resolved version, selection state, and dependency graph.
+  - Every project is evaluated independently for the `client` and `server` **environments**. Each environment column has its own support level, resolved version, selection state, status ring, and dependency graph.
 
 ### Reading Environment Cells
 
@@ -142,7 +144,7 @@ Required dependencies are managed automatically per environment as you select or
 
 The last actor (`user` vs. `auto`) determines a cell's selection source:
 
-- **Manual Uncheck ("User-off stays off"):** If you manually uncheck a dependency row (`on: false, source: 'user'`), its cell displays a `user off` badge and **remains unchecked** even if you subsequently select, deselect and re-select, or use **Select All** on projects that require it. The app will never force-enable a dependency you explicitly turned off (in M3.3, this state is highlighted with an amber warning). To include it again, simply check the dependency's checkbox manually.
+- **Manual Uncheck ("User-off stays off"):** If you manually uncheck a dependency row (`on: false, source: 'user'`), its cell displays a `user off` badge and **remains unchecked** even if you subsequently select, deselect and re-select, or use **Select All** on projects that require it. The app will never force-enable a dependency you explicitly turned off (instead, when that environment is active and a selected project requires the unchecked dependency, the cell and row are highlighted with an amber `REQUIRED_DEPENDENCY_NOT_SELECTED` warning). To include it again, simply check the dependency's checkbox manually.
 - **Manual Check ("User-on stays on"):** If you manually check a dependency row (`on: true, source: 'user'`), its source becomes `'user'` (clearing the `auto` badge). If you later deselect the parent project(s) that required it, your manually checked dependency **remains checked** rather than being auto-deselected.
 
 ### Visual Feedback (Cell Flash & Toast Notification)
@@ -193,7 +195,74 @@ During resolution (and when switching project versions), the app computes the tr
 
 ---
 
-## 9. Skipped Projects Section
+## 9. Status Symbols, Tooltips & Visual Highlights
+
+As you review and customize selections in active **Environment** columns, the table's left status column, row tints, and per-cell status rings provide immediate visual and accessible feedback on version compatibility, dependency availability, and selection warnings.
+
+### Inactive Environments Are Excluded Until Toggled On
+
+Status symbols and highlights are computed **exclusively for active (toggled-on) environments**:
+
+- When both **Client** and **Server** top-level toggles are **off** (the initial state on load), no row status symbols, row tints, or per-cell status rings are shown.
+- When only **Client** is toggled **on**, the row status symbol, tooltip, row tint, and cell rings reflect **Client** only—any potential warnings or errors in the inactive **Server** column are ignored and remain unhighlighted until **Server** is toggled on.
+- When both **Client** and **Server** are toggled **on**, both environments are evaluated and aggregated.
+
+### Reading the Left Status Column
+
+The thin, unnamed leftmost column of every collection and dependency row displays a single status badge representing the **worst status across active environments** using the priority order `error > warning > unknown > ok`:
+
+| Symbol | Kind | Shape & Color | Meaning |
+|---|---|---|---|
+| `✓` | `ok` | Green check | All active, supported environments on this row resolved cleanly with no warnings or errors |
+| `⚠` | `warning` | Amber warning triangle | At least one active environment has an actionable warning (and neither has an error) |
+| `⚠` | `error` | Red error triangle with exclamation (`!`) | At least one active environment has a missing version or an unavailable required dependency |
+| `?` | `unknown` | Purple question circle | Environment support on Modrinth is `unknown` in at least one active environment (and no errors or warnings apply) |
+
+- **Distinct Shapes & Accessibility:** Every status symbol pairs color with a distinct geometric shape (`✓` check, `⚠` triangle, `⚠` triangle with exclamation `!`, `?` circle) and an accessible `aria-label` so color is never the only signal.
+- **Unsupported Cells (`✗`):** An `unsupported` cell renders `✗` inside the environment cell itself and contributes no status—unless a selected project in that active environment requires it (`NEEDED_BUT_UNAVAILABLE`).
+
+### Hover & Keyboard-Focus Status Tooltips
+
+Every status badge in the left column is keyboard-focusable (as a native `<button type="button">`) and reveals a tooltip on mouse hover or keyboard focus explaining every status reason for each **active** environment, prefixed with `Client:` or `Server:`:
+
+| Reason | Kind | In-App Tooltip Text (`Client: <message>` / `Server: <message>`) | When It Appears |
+|---|---|---|---|
+| `NO_COMPATIBLE_VERSION` | `error` | `Client: No compatible version is available for this environment.` / `Server: No compatible version is available for this environment.` | The project supports this environment (`support !== 'unsupported'`), but no compatible version exists for the target **Game Version** and **Platform**. |
+| `DEPENDENCY_UNAVAILABLE` | `error` | `Client: A required dependency is unavailable in this environment.` / `Server: A required dependency is unavailable in this environment.` | This entry is selected in this environment, and at least one of its required dependencies is `unsupported` or has no compatible version here. |
+| `NEEDED_BUT_UNAVAILABLE` | `error` | `Client: Required by a selected entry in this environment, but unavailable here.` / `Server: Required by a selected entry in this environment, but unavailable here.` | At least one selected entry in this environment requires this entry, but this entry is `unsupported` or has no compatible version here. |
+| `REQUIRED_NOT_SELECTED` | `warning` | `Client: Marked as required for this environment, but explicitly deselected.` / `Server: Marked as required for this environment, but explicitly deselected.` | Modrinth marks this project as `required` in this environment, and you explicitly unchecked it (`user off`). |
+| `REQUIRED_DEPENDENCY_NOT_SELECTED` | `warning` | `Client: Required by a selected entry in this environment, but not selected.` / `Server: Required by a selected entry in this environment, but not selected.` | At least one selected entry in this environment requires this dependency, a compatible version is selectable, but the dependency is currently unchecked. |
+| `PIN_CONFLICT` | `warning` | `Client: Multiple entries pin different versions of this dependency; resolved to the newest compatible pin.` / `Server: Multiple entries pin different versions of this dependency; resolved to the newest compatible pin.` | Multiple requiring entries in this environment pin different compatible versions of this dependency; the resolver automatically picked the newest compatible pin. |
+| `PLATFORM_UNVERIFIED` | `warning` | `Client: Resolved via game-version fallback (version does not explicitly list a platform).` / `Server: Resolved via game-version fallback (version does not explicitly list a platform).` | The chosen `mod` or `plugin` version matched the target **Game Version** via fallback because its Modrinth metadata omitted explicit platform tags. |
+| `SUPPORT_UNKNOWN` | `unknown` | `Client: Environment support is unknown on Modrinth.` / `Server: Environment support is unknown on Modrinth.` | Modrinth does not specify whether this environment is `required`, `optional`, or `unsupported`. |
+| *(none — `ok`)* | `ok` | `OK` (row tooltip) / `Client: OK` or `Server: OK` (cell tooltip) | Active environment(s) have no errors, warnings, or unknown support flags. |
+
+If an entry has multiple reasons across one or both active environments, the tooltip lists each `Client: ...` and `Server: ...` line in order.
+
+### Row Tints vs. Per-Environment Cell Rings
+
+To make it effortless to scan large tables and immediately identify *which* environment has an issue, the UI combines two complementary layers of highlighting:
+
+1. **Row-Wide Background Tint:**
+   - The entire row receives a subtle background tint matching the row's overall status (`red` for `error`, `amber` for `warning`, `purple` for `unknown`, or no tint for `ok`).
+2. **Per-Environment Cell Rings:**
+   - Within a tinted row, an outline **ring** is drawn **only around the specific active environment cell(s)** (`Client`, `Server`, or both) whose own status is not `ok`:
+     - **Red cell ring (`error`):** Highlights the exact environment cell with `NO_COMPATIBLE_VERSION`, `DEPENDENCY_UNAVAILABLE`, or `NEEDED_BUT_UNAVAILABLE`.
+     - **Amber cell ring (`warning`):** Highlights the exact environment cell with `REQUIRED_NOT_SELECTED`, `REQUIRED_DEPENDENCY_NOT_SELECTED`, `PIN_CONFLICT`, or `PLATFORM_UNVERIFIED`.
+     - **Purple cell ring (`unknown`):** Highlights the exact environment cell with `SUPPORT_UNKNOWN`.
+   - For example, if a mod resolves cleanly (`ok`) in **Client** but has no compatible version (`error`) in **Server** while both environments are active, the row receives a red tint and a red `⚠` symbol, **Server** receives a red cell ring, and **Client** has no ring—showing at a glance that only **Server** is affected.
+
+### Dual Highlighting When a Dependency Is Unavailable
+
+When a project selected in an active environment requires a dependency that is unavailable in that environment (`version === null` or `support === 'unsupported'`), **both** rows are highlighted with red `error` status and red cell rings in that environment so you can trace both ends of the broken dependency link:
+
+- **On the Dependent (Parent) Row:** The selected project's cell in that environment gets a red ring and reason `DEPENDENCY_UNAVAILABLE` (`"<Env>: A required dependency is unavailable in this environment."`).
+- **On the Dependency (Child) Row:** The dependency entry (always visible in the **Dependencies** footer or main table rows) gets a red ring on that same environment cell—even if the cell displays `✗` (`unsupported`) or `"No compatible version"`—and reason `NEEDED_BUT_UNAVAILABLE` (`"<Env>: Required by a selected entry in this environment, but unavailable here."`).
+- Unchecking the parent project in that environment immediately clears both `DEPENDENCY_UNAVAILABLE` on the parent and `NEEDED_BUT_UNAVAILABLE` on the dependency (unless another selected project in that environment also requires it).
+
+---
+
+## 10. Skipped Projects Section
 
 Not every item returned by Modrinth can be packaged as an individual project file inside an instance. Projects that cannot be resolved into table entries are listed in the **Skipped Projects** section below the review tables:
 
@@ -204,7 +273,7 @@ Skipped projects are informational only and are never included in exports.
 
 ---
 
-## 10. Exporting `instance.json`
+## 11. Exporting `instance.json`
 
 Once a collection is loaded and resolved, you can save a complete, lossless snapshot of the current **Instance** (including your custom selections and per-environment version overrides):
 
@@ -215,29 +284,15 @@ Once a collection is loaded and resolved, you can save a complete, lossless snap
 What `<collectionId>-instance.json` contains:
 - `schemaVersion: 1`
 - `meta`: Collection name, source `collectionId` and `url`, target `gameVersion`, `platform`, and `releasePreference`, plus the `createdAt` ISO-8601 timestamp.
-- `entries`: Every resolved collection and dependency entry, including both `client` and `server` environment states (`support`, `candidates`, chosen `version` with primary file CDN URL and `sha1`/`sha512` hashes, `resolution`, `dependencies`, `requiredBy`, and `selection`).
+- `entries`: Every resolved collection and dependency entry, including both `client` and `server` environment states (`support`, `candidates`, chosen `version` with primary file CDN URL and `sha1`/`sha512` hashes, `resolution`, `dependencies`, `requiredBy`, and `selection`). Derived `status` is never stored in `instance.json`.
 
 See [Instance Format (`instance.json`)](instance-format.md) for the full schema reference.
 
 ---
 
-## 11. Upcoming Review & Export Features (Milestones M3.3–M4)
+## 12. Upcoming Export Features (Milestone M4)
 
-> _Note: The following capabilities build on the interactive review tables in subsequent milestones._
-
-### Status Symbols & Highlighting (M3.3)
-
-| Symbol | Kind | Color | Meaning |
-|---|---|---|---|
-| `✓` | `ok` | Green | No issues in active environments |
-| `⚠` | `warning` | Amber | Actionable warning (e.g., required entry or dependency deselected, pin conflict, or unverified platform fallback) |
-| `⚠` (with `!`) | `error` | Red | Missing compatible version or unavailable required dependency |
-| `?` | `unknown` | Purple | Environment support is `unknown` on Modrinth |
-| `✗` | N/A | Muted | Project is `unsupported` in that environment (rendered inside the cell) |
-
-See [Concepts — Status and Symbol Reference](concepts.md#8-status-and-symbol-reference) for all status reasons.
-
-### Additional Outputs (M4)
+> _Note: The following export and import capabilities build on the interactive review tables in Milestone M4._
 
 - **`<collectionId>-client.zip` & `<collectionId>-server.zip`:** Downloads primary files for entries selected in the respective environment into per-type folders (`mods/`, `plugins/`, `datapacks/`, `resourcepacks/`, `shaderpacks/`).
 - **`<collectionId>.mrpack`:** Generates a Modrinth modpack archive (`modrinth.index.json`) referencing CDN URLs, SHA-1/SHA-512 hashes, and per-environment support annotations.

@@ -129,36 +129,53 @@ All selection mutations are pure reducers (`reduceInstance(instance, action) => 
 
 ## 8. Status and Symbol Reference
 
-Status is derived purely from `Instance` (and optional active environment toggles) and is never stored in `Instance` or serialized to `instance.json`:
+Status is derived purely from `Instance` (and active **Environment** toggles) in `src/core/status.ts` and is never stored in `Instance` or serialized to `instance.json`:
 
 - `computeEntryStatus(instance, activeEnvironments?): Map<string, EntryStatus>` returns `{ client: Status | null, server: Status | null, row: Status | null }` per entry. Inactive environments, non-exportable (`modpack`) entries, and `unsupported` cells (when `NEEDED_BUT_UNAVAILABLE` does not apply) return `null`; `row` aggregates the worst active cell `Status` (or `null` if all active cells are `null`).
 - `computeStatus(instance, activeEnvironments?): InstanceStatusMap` (`Map<string, Record<EnvironmentId, Status>>`) returns per-environment `Status` (`{ kind, reasons }`) for every entry, coalescing `null` cells from `computeEntryStatus` to `{ kind: 'ok', reasons: [] }`.
+- `formatReason(reason, env?)`, `formatCellStatusTooltip(status, env?)`, and `formatRowStatusTooltip(entryStatus)` generate the exact in-app tooltip strings displayed on hover or keyboard focus. The symbol tooltips serve as the in-app legend, and the table below mirrors them verbatim.
 
-### Status Reasons (Per Environment Cell)
+### Status Reasons & In-App Tooltips (Per Environment Cell)
 
-| Reason | Kind | Condition |
-|---|---|---|
-| `NO_COMPATIBLE_VERSION` | `error` | `version === null` (while `support !== 'unsupported'`) |
-| `DEPENDENCY_UNAVAILABLE` | `error` | Entry is selected and at least one required dependency has `version === null` or `support === 'unsupported'` in this environment |
-| `NEEDED_BUT_UNAVAILABLE` | `error` | This entry is required by at least one selected entry in this environment, but has `version === null` or `support === 'unsupported'` here |
-| `REQUIRED_NOT_SELECTED` | `warning` | `support === 'required'` and selection is `{ on: false, source: 'user' }` (explicitly deselected by user) |
-| `REQUIRED_DEPENDENCY_NOT_SELECTED` | `warning` | Entry is required by ≥1 *selected* entry in this environment, cell is selectable, and selection is `on: false` |
-| `PIN_CONFLICT` | `warning` | Multiple requiring entries in this environment pin different compatible versions of this dependency (resolved to newest `publishedAt`) |
-| `PLATFORM_UNVERIFIED` | `warning` | `resolution === 'game-version-fallback'` (version matched game version with empty/missing `platforms`) |
-| `SUPPORT_UNKNOWN` | `unknown` | `support === 'unknown'` |
+When formatted for an environment (`Client` or `Server`), each reason produces `Client: <message>` or `Server: <message>`. When an active row or cell has `kind: 'ok'` (no reasons), its tooltip is `"OK"` (or `"Client: OK"` / `"Server: OK"` for cell-level formatting).
 
-### Priority & Aggregation
+| Reason | Kind | Symbol | Condition | In-App Tooltip Message (`REASON_MESSAGES`) | Environment-Prefixed Tooltip (`formatReason(reason, env)`) |
+|---|---|---|---|---|---|
+| `NO_COMPATIBLE_VERSION` | `error` | `⚠` (red error triangle with `!`) | `version === null` (while `support !== 'unsupported'`) | `"No compatible version is available for this environment."` | `"Client: No compatible version is available for this environment."` / `"Server: No compatible version is available for this environment."` |
+| `DEPENDENCY_UNAVAILABLE` | `error` | `⚠` (red error triangle with `!`) | Entry is selected (`selection.on === true`) and at least one required dependency has `version === null` or `support === 'unsupported'` in this environment | `"A required dependency is unavailable in this environment."` | `"Client: A required dependency is unavailable in this environment."` / `"Server: A required dependency is unavailable in this environment."` |
+| `NEEDED_BUT_UNAVAILABLE` | `error` | `⚠` (red error triangle with `!`) | This entry is required by at least one selected entry in this environment, but has `version === null` or `support === 'unsupported'` here | `"Required by a selected entry in this environment, but unavailable here."` | `"Client: Required by a selected entry in this environment, but unavailable here."` / `"Server: Required by a selected entry in this environment, but unavailable here."` |
+| `REQUIRED_NOT_SELECTED` | `warning` | `⚠` (amber warning triangle) | `support === 'required'` and selection is `{ on: false, source: 'user' }` (explicitly deselected by the user) | `"Marked as required for this environment, but explicitly deselected."` | `"Client: Marked as required for this environment, but explicitly deselected."` / `"Server: Marked as required for this environment, but explicitly deselected."` |
+| `REQUIRED_DEPENDENCY_NOT_SELECTED` | `warning` | `⚠` (amber warning triangle) | Entry is required by ≥1 *selected* entry in this environment, cell is selectable, and selection is `on: false` | `"Required by a selected entry in this environment, but not selected."` | `"Client: Required by a selected entry in this environment, but not selected."` / `"Server: Required by a selected entry in this environment, but not selected."` |
+| `PIN_CONFLICT` | `warning` | `⚠` (amber warning triangle) | Multiple requiring entries in this environment pin different compatible versions of this dependency (resolved to the newest compatible pin by `publishedAt`) | `"Multiple entries pin different versions of this dependency; resolved to the newest compatible pin."` | `"Client: Multiple entries pin different versions of this dependency; resolved to the newest compatible pin."` / `"Server: Multiple entries pin different versions of this dependency; resolved to the newest compatible pin."` |
+| `PLATFORM_UNVERIFIED` | `warning` | `⚠` (amber warning triangle) | `resolution === 'game-version-fallback'` (version matched game version with empty/missing `platforms`) | `"Resolved via game-version fallback (version does not explicitly list a platform)."` | `"Client: Resolved via game-version fallback (version does not explicitly list a platform)."` / `"Server: Resolved via game-version fallback (version does not explicitly list a platform)."` |
+| `SUPPORT_UNKNOWN` | `unknown` | `?` (purple question circle) | `support === 'unknown'` | `"Environment support is unknown on Modrinth."` | `"Client: Environment support is unknown on Modrinth."` / `"Server: Environment support is unknown on Modrinth."` |
+| *(none — `ok`)* | `ok` | `✓` (green check) | Active cell has `support !== 'unsupported'` and zero status reasons | `"OK"` | `"Client: OK"` / `"Server: OK"` (row tooltip: `"OK"`) |
 
-- **Priority order:** `error` > `warning` > `unknown` > `ok`.
-- A cell with no reasons has `kind: 'ok'`.
-- An `unsupported` cell has no status and renders `✗`.
-- **Row status:** Worst `kind` across **active** (toggled-on) environments. If neither environment toggle is active, no row status symbol is shown.
+### Priority, Active-Environment Aggregation & Row Status
 
-### Visual Symbols
+- **Severity priority order:** `error` > `warning` > `unknown` > `ok`.
+- **Single-cell status:** A cell's `kind` is the highest-priority `Kind` among all `reasons` triggered in that environment (`ok` when `reasons` is empty).
+- **Unsupported cells:** An `unsupported` cell renders `✗` and has `null` status—**except** when a selected entry in that active environment requires it, in which case the cell is flagged with `kind: 'error'` and reason `NEEDED_BUT_UNAVAILABLE`.
+- **Active environments only:** Status is computed exclusively for **active** (toggled-on) environments. An inactive environment always yields `null` cell status and contributes nothing to the row status, row tint, or cell rings.
+- **Row status:** The worst `kind` across **active** environments (`error > warning > unknown > ok`). If neither **Client** nor **Server** is toggled on (or both active cells are `unsupported` with no `NEEDED_BUT_UNAVAILABLE` error), `row` status is `null` and the left status column renders no symbol.
+- **Row tooltip (`formatRowStatusTooltip`):** Joins every reason from active environments in canonical order (`Client: ...` followed by `Server: ...`, separated by newlines), or `"OK"` when at least one active cell is evaluated and no reasons are present.
 
-| Kind | Symbol | Color | Visual Ring / Row Tint |
-|---|---|---|---|
-| `ok` | `✓` | Green | No tint / no cell ring |
-| `warning` | `⚠` (triangle) | Amber | Amber row tint (if worst) + amber ring on affected environment cell |
-| `error` | `⚠` (triangle with `!`) | Red | Red row tint (if worst) + red ring on affected environment cell |
-| `unknown` | `?` (circle) | Purple | Purple row tint (if worst) + purple ring on affected environment cell |
+### Visual Symbols, Row Tints & Per-Cell Status Rings
+
+Every status symbol uses both a distinct shape and color, paired with keyboard-focusable tooltips and accessible `aria-label` descriptions so color is never the sole indicator:
+
+| Kind | Symbol | Shape & Color | Row Tint (when Row Status = `Kind`) | Per-Environment Cell Ring (when Cell Status = `Kind`) |
+|---|---|---|---|---|
+| `ok` | `✓` | Green check | No row tint | No cell ring |
+| `warning` | `⚠` | Amber warning triangle | Amber row-wide background tint | Amber ring around the specific affected environment cell (`client`, `server`, or both) |
+| `error` | `⚠` | Red error triangle with exclamation (`!`) | Red row-wide background tint | Red ring around the specific affected environment cell (`client`, `server`, or both) |
+| `unknown` | `?` | Purple question circle | Purple row-wide background tint | Purple ring around the specific affected environment cell (`client`, `server`, or both) |
+
+Because row tint reflects the **worst** status across active environments while **per-cell status rings** wrap only the individual environment cell(s) whose status is not `ok`, you can immediately tell whether an issue affects **Client** only, **Server** only, or both environments (or when one environment has an `error` while the other has a `warning` or is `ok`).
+
+### Dual Dependency / Dependent Highlighting (`DEPENDENCY_UNAVAILABLE` + `NEEDED_BUT_UNAVAILABLE`)
+
+When a selected entry in an active environment requires a dependency that is unavailable in that environment (`version === null` or `support === 'unsupported'`), **both** rows and cells are highlighted simultaneously in that environment:
+
+1. **Dependent entry (parent):** Flagged with `DEPENDENCY_UNAVAILABLE` (`kind: 'error'`, red `⚠` symbol, red row tint, and a red ring on that environment's cell) with tooltip `"<Env>: A required dependency is unavailable in this environment."`
+2. **Dependency entry (child):** Always remains visible in the table (in the **Dependencies** footer or main rows) and is flagged in the same environment with `NEEDED_BUT_UNAVAILABLE` (`kind: 'error'`, red `⚠` symbol, red row tint, and a red ring on that environment's cell—even if that cell is `✗` `unsupported` or `"No compatible version"`) with tooltip `"<Env>: Required by a selected entry in this environment, but unavailable here."`

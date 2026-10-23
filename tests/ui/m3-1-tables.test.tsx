@@ -12,7 +12,12 @@ function buildFullM31FakeClient(): FakeModrinthClient {
       { version: '1.21.1', versionType: 'release', date: '2024-08-08T00:00:00Z', major: false },
       { version: '24w33a', versionType: 'snapshot', date: '2024-08-15T00:00:00Z', major: false },
       { version: '1.20.1-beta1', versionType: 'beta', date: '2023-06-01T00:00:00Z', major: false },
-      { version: '1.20.1-alpha1', versionType: 'alpha', date: '2023-05-01T00:00:00Z', major: false },
+      {
+        version: '1.20.1-alpha1',
+        versionType: 'alpha',
+        date: '2023-05-01T00:00:00Z',
+        major: false,
+      },
       { version: '1.20.1', versionType: 'release', date: '2023-06-12T00:00:00Z', major: true },
     ],
     platforms: [
@@ -329,32 +334,33 @@ describe('M3.1 Read-only tables + JSON export', () => {
     expect(sodiumLink).toHaveAttribute('href', 'https://modrinth.com/mod/sodium');
     expect(sodiumLink).toHaveAttribute('target', '_blank');
     const sodiumCells = within(sodiumRow).getAllByRole('cell');
-    expect(sodiumCells[1]).toHaveTextContent('Fabric');
-    expect(sodiumCells[2]).toHaveTextContent('0.5.8+mc1.20.1');
-    expect(sodiumCells[2]).toHaveTextContent('required');
-    expect(within(sodiumCells[3]!).getByLabelText('Unsupported')).toHaveTextContent('✗');
+    expect(sodiumCells[0]).toHaveClass('col-status');
+    expect(sodiumCells[2]).toHaveTextContent('Fabric');
+    expect(sodiumCells[3]).toHaveTextContent('0.5.8+mc1.20.1');
+    expect(sodiumCells[3]).toHaveTextContent('required');
+    expect(within(sodiumCells[4]!).getByLabelText('Unsupported')).toHaveTextContent('✗');
 
     const lithiumRow = modsTable.querySelector('tr[data-project-id="mod-lithium"]') as HTMLElement;
     const lithiumCells = within(lithiumRow).getAllByRole('cell');
-    expect(lithiumCells[2]).toHaveTextContent('0.11.2');
-    expect(lithiumCells[2]).toHaveTextContent('beta');
-    expect(lithiumCells[2]).toHaveTextContent('optional');
     expect(lithiumCells[3]).toHaveTextContent('0.11.2');
-    expect(lithiumCells[3]).toHaveTextContent('required');
+    expect(lithiumCells[3]).toHaveTextContent('beta');
+    expect(lithiumCells[3]).toHaveTextContent('optional');
+    expect(lithiumCells[4]).toHaveTextContent('0.11.2');
+    expect(lithiumCells[4]).toHaveTextContent('required');
 
     const fallbackRow = modsTable.querySelector(
       'tr[data-project-id="mod-fallback"]',
     ) as HTMLElement;
     const fallbackCells = within(fallbackRow).getAllByRole('cell');
-    expect(fallbackCells[2]).toHaveTextContent('1.0.0-any');
-    expect(fallbackCells[2]).toHaveTextContent('unverified platform');
-    expect(fallbackCells[2]).toHaveTextContent('unknown');
+    expect(fallbackCells[3]).toHaveTextContent('1.0.0-any');
+    expect(fallbackCells[3]).toHaveTextContent('unverified platform');
+    expect(fallbackCells[3]).toHaveTextContent('unknown');
 
     const missingRow = modsTable.querySelector('tr[data-project-id="mod-missing"]') as HTMLElement;
     const missingCells = within(missingRow).getAllByRole('cell');
-    expect(missingCells[2]).toHaveTextContent('No compatible version');
-    expect(missingCells[2]).toHaveTextContent('required');
     expect(missingCells[3]).toHaveTextContent('No compatible version');
+    expect(missingCells[3]).toHaveTextContent('required');
+    expect(missingCells[4]).toHaveTextContent('No compatible version');
 
     // Dependencies footer in the Mods table
     expect(within(modsTable).getByRole('rowheader', { name: 'Dependencies' })).toBeInTheDocument();
@@ -369,19 +375,19 @@ describe('M3.1 Read-only tables + JSON export', () => {
     const terralithRow = datapacksTable.querySelector(
       'tr[data-project-id="dp-terralith"]',
     ) as HTMLElement;
-    expect(within(terralithRow).getAllByRole('cell')[1]).toHaveTextContent('—');
+    expect(within(terralithRow).getAllByRole('cell')[2]).toHaveTextContent('—');
 
     const resourcePacksTable = screen.getByRole('table', { name: 'Resource Packs table' });
     const faithfulRow = resourcePacksTable.querySelector(
       'tr[data-project-id="rp-faithful"]',
     ) as HTMLElement;
-    expect(within(faithfulRow).getAllByRole('cell')[1]).toHaveTextContent('—');
+    expect(within(faithfulRow).getAllByRole('cell')[2]).toHaveTextContent('—');
 
     const shadersTable = screen.getByRole('table', { name: 'Shaders table' });
     const shaderRow = shadersTable.querySelector(
       'tr[data-project-id="shader-iris"]',
     ) as HTMLElement;
-    expect(within(shaderRow).getAllByRole('cell')[1]).toHaveTextContent('—');
+    expect(within(shaderRow).getAllByRole('cell')[2]).toHaveTextContent('—');
 
     // Skipped section displays modpack and unknown type projects with reasons
     const skippedSection = screen.getByRole('region', { name: 'Skipped Projects' });
@@ -547,9 +553,7 @@ describe('M3.1 Read-only tables + JSON export', () => {
       writable: true,
       value: revokeObjectURLMock,
     });
-    const clickSpy = vi
-      .spyOn(HTMLAnchorElement.prototype, 'click')
-      .mockImplementation(() => {});
+    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
     try {
       triggerTextDownload('test-instance.json', '{"hello":"world"}');
@@ -607,9 +611,7 @@ describe('M3.1 Read-only tables + JSON export', () => {
     const exportBtn = await screen.findByRole('button', { name: 'Export instance.json' });
     fireEvent.click(exportBtn);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Disk quota exceeded during export',
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('Disk quota exceeded during export');
   });
 
   it('supports unchecking preferStable (releasePreference: "newest") and renders empty exportable entries state', async () => {
