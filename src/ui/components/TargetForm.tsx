@@ -3,6 +3,7 @@ import {
   filterReleaseGameVersions,
   formatPlatformDisplayName,
   parseCollectionInput,
+  type InstanceTarget,
   type ReleasePreference,
 } from '../../core';
 import type { GameVersionInfo, ModrinthClient, PlatformInfo } from '../../ports';
@@ -18,7 +19,12 @@ export interface TargetFormValues {
 export interface TargetFormProps {
   modrinthClient?: ModrinthClient;
   isResolving: boolean;
+  isDisabled?: boolean;
+  activeTarget?: InstanceTarget | null;
+  activeCollectionId?: string | null;
+  revertToken?: number;
   onSubmit: (values: TargetFormValues) => void;
+  onTargetChange?: (values: TargetFormValues) => void;
 }
 
 function filterPlatforms(platforms: readonly PlatformInfo[]): PlatformInfo[] {
@@ -32,7 +38,16 @@ function filterPlatforms(platforms: readonly PlatformInfo[]): PlatformInfo[] {
   return platforms.filter((p) => p.name.trim().toLowerCase() !== 'datapack');
 }
 
-export function TargetForm({ modrinthClient, isResolving, onSubmit }: TargetFormProps) {
+export function TargetForm({
+  modrinthClient,
+  isResolving,
+  isDisabled = false,
+  activeTarget = null,
+  activeCollectionId = null,
+  revertToken = 0,
+  onSubmit,
+  onTargetChange,
+}: TargetFormProps) {
   const [collectionInput, setCollectionInput] = useState('');
   const [gameVersion, setGameVersion] = useState('');
   const [platform, setPlatform] = useState('');
@@ -44,6 +59,18 @@ export function TargetForm({ modrinthClient, isResolving, onSubmit }: TargetForm
   const [tagLoadError, setTagLoadError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
+
+  useEffect(() => {
+    if (revertToken > 0 && activeTarget) {
+      if (activeCollectionId) {
+        setCollectionInput(activeCollectionId);
+      }
+      setGameVersion(activeTarget.gameVersion);
+      setPlatform(activeTarget.platform);
+      setPreferStable(activeTarget.releasePreference === 'stable');
+      setValidationError(null);
+    }
+  }, [revertToken, activeTarget, activeCollectionId]);
 
   useEffect(() => {
     if (!modrinthClient) {
@@ -109,6 +136,30 @@ export function TargetForm({ modrinthClient, isResolving, onSubmit }: TargetForm
     setReloadNonce((n) => n + 1);
   }, []);
 
+  const notifyTargetChangeIfLoaded = (
+    nextGameVersion: string,
+    nextPlatform: string,
+    nextPreferStable: boolean,
+  ) => {
+    if (
+      !activeTarget ||
+      !activeCollectionId ||
+      !onTargetChange ||
+      !nextGameVersion ||
+      !nextPlatform
+    ) {
+      return;
+    }
+    setCollectionInput(activeCollectionId);
+    setValidationError(null);
+    onTargetChange({
+      collectionInput: activeCollectionId,
+      gameVersion: nextGameVersion,
+      platform: nextPlatform,
+      releasePreference: nextPreferStable ? 'stable' : 'newest',
+    });
+  };
+
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
@@ -139,6 +190,7 @@ export function TargetForm({ modrinthClient, isResolving, onSubmit }: TargetForm
     !tagLoadError &&
     gameVersions.length > 0 &&
     platforms.length > 0;
+  const controlsDisabled = isResolving || isDisabled;
 
   return (
     <form className="target-form" onSubmit={handleSubmit} noValidate>
@@ -169,7 +221,7 @@ export function TargetForm({ modrinthClient, isResolving, onSubmit }: TargetForm
             }
           }}
           placeholder="https://modrinth.com/collection/5OBQuutT or 5OBQuutT"
-          disabled={isResolving}
+          disabled={controlsDisabled}
           aria-invalid={validationError ? 'true' : 'false'}
           aria-describedby={validationError ? 'collection-input-error' : undefined}
         />
@@ -186,8 +238,12 @@ export function TargetForm({ modrinthClient, isResolving, onSubmit }: TargetForm
           <select
             id="game-version-select"
             value={gameVersion}
-            onChange={(e) => setGameVersion(e.target.value)}
-            disabled={!tagsReady || isResolving}
+            onChange={(e) => {
+              const nextGameVersion = e.target.value;
+              setGameVersion(nextGameVersion);
+              notifyTargetChangeIfLoaded(nextGameVersion, platform, preferStable);
+            }}
+            disabled={!tagsReady || controlsDisabled}
           >
             {gameVersions.length === 0 ? (
               <option value="">
@@ -208,8 +264,12 @@ export function TargetForm({ modrinthClient, isResolving, onSubmit }: TargetForm
           <select
             id="platform-select"
             value={platform}
-            onChange={(e) => setPlatform(e.target.value)}
-            disabled={!tagsReady || isResolving}
+            onChange={(e) => {
+              const nextPlatform = e.target.value;
+              setPlatform(nextPlatform);
+              notifyTargetChangeIfLoaded(gameVersion, nextPlatform, preferStable);
+            }}
+            disabled={!tagsReady || controlsDisabled}
           >
             {platforms.length === 0 ? (
               <option value="">
@@ -232,8 +292,12 @@ export function TargetForm({ modrinthClient, isResolving, onSubmit }: TargetForm
             id="prefer-stable-checkbox"
             type="checkbox"
             checked={preferStable}
-            onChange={(e) => setPreferStable(e.target.checked)}
-            disabled={isResolving}
+            onChange={(e) => {
+              const nextPreferStable = e.target.checked;
+              setPreferStable(nextPreferStable);
+              notifyTargetChangeIfLoaded(gameVersion, platform, nextPreferStable);
+            }}
+            disabled={controlsDisabled}
           />
           <span>Prefer stable releases over newest alpha/beta</span>
         </label>
@@ -243,7 +307,7 @@ export function TargetForm({ modrinthClient, isResolving, onSubmit }: TargetForm
         <button
           type="submit"
           className="btn btn-primary"
-          disabled={!tagsReady || isResolving}
+          disabled={!tagsReady || controlsDisabled}
         >
           {isResolving ? 'Loading collection…' : 'Load collection'}
         </button>

@@ -27,7 +27,7 @@ All three export formats (`client.zip`/`server.zip`, `instance.json`, `.mrpack`)
 - `toTables(instance)` (`src/core/projections.ts`) → ordered `TableModel[]` (`mod`, `plugin`, `datapack`, `resourcepack`, `shader`) with collection `rows` and visible `dependencies` footers.
 - `toFileTree(instance)` (`src/core/projections.ts`) → deterministic `{ client: FileTree; server: FileTree }` archive layouts using `formatFilename` and per-folder collision deduplication (`src/core/naming.ts`).
 - `serialize(instance)` / `deserialize(json)` (`src/core/serialize.ts`) → schema-validated `instance.json` with deterministic key ordering.
-- `toMrpack(instance, opts)` (`src/core/projections.ts`) → Modrinth `modrinth.index.json` (`MrpackIndex`) with per-environment support mapping, split entries when client and server choose different versions, plugin exclusion warnings (`getMrpackWarnings`), and optional loader version dependency mapping.
+- `toMrpack(instance, opts)` (`src/core/projections.ts`) → Modrinth `modrinth.index.json` (`MrpackIndex`) with per-environment support mapping, split entries when client and server choose different versions, plugin exclusion warnings (`getMrpackWarnings`), and optional platform version dependency mapping.
 
 Each **Environment** (`client` and `server`) is a **fully independent lane**:
 - Its own `support` value (`required`, `optional`, `unsupported`, `unknown`)
@@ -75,7 +75,7 @@ For each project and each environment independently, given target `{ gameVersion
 ### Candidate Pool & User Override
 
 - `candidates` contains all compatible versions from rules 2 and 3 (ordered preferred-first), plus any pinned version from rule 1.
-- When a user manually selects a version from the dropdown, `version` updates to that candidate and `resolution` becomes `'user'`.
+- When a user manually selects a version from a cell's version dropdown, `version` updates to that candidate (`resolution: 'user'`), and the dependency closure for that environment is recomputed (`changeEntryVersion` / `recomputeDependencyClosure`).
 
 ---
 
@@ -85,26 +85,34 @@ For each project and each environment independently, given target `{ gameVersion
 - **Per-Environment Transitive Closure:** Computed at resolve time independently for `client` and `server` starting from each entry's chosen version, using a visited set to prevent cycles.
 - **Origin Precedence:** Every discovered dependency project becomes an `Entry` with `origin: 'dependency'`, unless the project is already part of the collection (in which case `origin: 'collection'` wins).
 - **Closure Independence from Selection:** Dependency closure and `requiredBy` are determined by each entry's **chosen version** in that environment, regardless of whether entries are currently selected.
-- **Version Override Recompute:** Changing an entry's chosen version in an environment recomputes that environment's dependency closure, fetches any newly referenced dependency projects/versions, diffs selection changes, and reports `changes`.
-- **Dependency Visibility Rule:** A dependency entry is always listed in the table's Dependencies footer if any collection entry requires it in any environment (regardless of selection).
+- **Version Override Recompute:** Changing an entry's chosen version in an environment (`set-version` / `changeEntryVersion` / `recomputeDependencyClosure`) recomputes that environment's dependency closure, fetches any newly referenced dependency projects or pinned versions from `ModrinthClient`, updates `requiredBy` edges, auto-selects newly required selectable dependencies (unless explicitly turned off by the user), auto-deselects orphaned `auto` dependencies, and returns `changes`.
+- **Dependency Visibility Rule:** A dependency entry is always listed in the table's Dependencies footer if any entry requires it in any environment (regardless of selection).
 
 ---
 
 ## 6. Selection Rules
 
-- **Selectability:** An environment cell is selectable if and only if `support !== 'unsupported'` and `version !== null`. Cells with `support === 'unknown'` (and a valid `version`) are selectable.
-- **Initial State (on Resolve / Re-resolve):**
+All selection mutations are pure reducers (`reduceInstance(instance, action) => { instance, changes }` in `src/core/reducers.ts`), where `changes` lists cells that were automatically selected or deselected (`reason: 'auto-selected' | 'auto-deselected'`).
+
+- **Selectability (`isSelectable`):** An environment cell is selectable if and only if `support !== 'unsupported'` and `version !== null`. Cells with `support === 'unknown'` (and a valid `version`) are selectable.
+- **Initial State (on Resolve / Re-resolve — `computeInitialSelection`):**
   - Every **collection** entry (`origin: 'collection'`) is selected (`{ on: true, source: 'user' }`) in every environment where it is selectable (`unknown` support included).
-  - Every **dependency** entry (`origin: 'dependency'`) is selected (`{ on: true, source: 'auto' }`) in an environment if and only if it is selectable there **and** required by at least one selected entry's chosen version in that environment.
+  - Every **dependency** entry (`origin: 'dependency'`) is selected (`{ on: true, source: 'auto' }`) in an environment if and only if it is selectable there **and** transitively required by at least one selected entry's chosen version in that environment; otherwise `{ on: false, source: 'none' }`.
 - **Selecting an Entry (`select(entry, env)`):**
   - Sets the entry's cell to `{ on: true, source: 'user' }`.
   - For each transitive required dependency `D` in `env`: if `D` is selectable and its selection is **not** `{ on: false, source: 'user' }` (explicitly turned off by the user), set `D` to `{ on: true, source: 'auto' }` and record `D` in `changes`.
-  - A dependency explicitly turned off by the user (`off/user`) stays off and triggers `REQUIRED_DEPENDENCY_NOT_SELECTED`.
+  - **User-off stays off:** A dependency explicitly turned off by the user (`{ on: false, source: 'user' }`) remains off across subsequent `select`, `select-all`, and version-override operations, and triggers `REQUIRED_DEPENDENCY_NOT_SELECTED`.
 - **Deselecting an Entry (`deselect(entry, env)`):**
   - Sets the entry's cell to `{ on: false, source: 'user' }`.
-  - Any dependency in `env` with `source: 'auto'` that is no longer required by any *selected* entry in `env` is set to `{ on: false, source: 'auto' }` and recorded in `changes`. Dependencies with `source: 'user'` are not modified.
-- **Header Select-All / Deselect-All:**
-  - Operates per table, per environment on **collection rows only** (dependency rows update automatically via the auto-select/auto-deselect rules).
+  - Any dependency in `env` with `source: 'auto'` that is no longer transitively required by any *selected* entry in `env` is set to `{ on: false, source: 'auto' }` and recorded in `changes`.
+  - **User-on stays on:** Dependencies manually checked by the user (`{ on: true, source: 'user' }`) are never auto-deselected.
+- **Header Select-All / Deselect-All (`select-all` / `deselect-all` & `getHeaderTriState`):**
+  - Operates per table, per environment on selectable **collection rows only** (dependency rows update automatically via the auto-select and auto-deselect rules).
+  - Header checkbox state (`HeaderTriState`) is derived from selectable collection rows in that table and environment: `'checked'` when all are selected, `'unchecked'` when none are selected (or none are selectable), and `'indeterminate'` when a subset is selected.
+- **Auto-Select UI Feedback:**
+  - Every cell listed in `changes` flashes for ~1 second (or displays a static 1-second outline when `prefers-reduced-motion: reduce` is active), accompanied by a summary toast message (e.g., `"Auto-selected 3 client dependencies"`).
+- **Target Change & Re-Resolve Confirmation (`hasSelectionChangedFromDefault`):**
+  - Changing `gameVersion`, `platform`, or `releasePreference` triggers a full re-resolve and resets selections to the initial default state above. If `hasSelectionChangedFromDefault(instance)` is `true`, the UI prompts a confirmation dialog before discarding custom selections.
 
 ---
 
@@ -112,10 +120,10 @@ For each project and each environment independently, given target `{ gameVersion
 
 - Two top-level toggles (**Client** and **Server**) default to **off** when review tables first load, even though the underlying `Selection` state starts populated per §6.
 - While an environment's toggle is **off**:
-  - The column is visually grayed out and non-interactive (checkboxes and dropdowns disabled), while still displaying the underlying resolved versions and selections.
+  - The column is visually grayed out and non-interactive (header Select-All, row checkboxes, and version dropdowns are disabled), while still displaying the underlying resolved versions and selections.
   - Status computation and visual highlights ignore inactive environments.
   - Environment-targeted export buttons (`client.zip` / `server.zip`) are disabled while their respective environment toggle is off.
-- Toggling an environment **on** or **off** never alters `Selection` or `version` state.
+- Toggling an environment **on** or **off** only enables or disables interaction for that column; it never alters `Selection` or `version` state.
 
 ---
 
@@ -130,7 +138,7 @@ Status is derived purely from `Instance` (and optional active environment toggle
 
 | Reason | Kind | Condition |
 |---|---|---|
-| `NO_COMPATIBLE_VERSION` | `error` | `version === null` ( while `support !== 'unsupported'`) |
+| `NO_COMPATIBLE_VERSION` | `error` | `version === null` (while `support !== 'unsupported'`) |
 | `DEPENDENCY_UNAVAILABLE` | `error` | Entry is selected and at least one required dependency has `version === null` or `support === 'unsupported'` in this environment |
 | `NEEDED_BUT_UNAVAILABLE` | `error` | This entry is required by at least one selected entry in this environment, but has `version === null` or `support === 'unsupported'` here |
 | `REQUIRED_NOT_SELECTED` | `warning` | `support === 'required'` and selection is `{ on: false, source: 'user' }` (explicitly deselected by user) |

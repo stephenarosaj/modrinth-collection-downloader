@@ -388,6 +388,33 @@ export function resetInstanceSelection(instance: Instance): ReducerResult {
 }
 
 /**
+ * Computes the header select-all tri-state from a sequence of environment states (§7.3).
+ * Inspects selectable states only.
+ */
+export function computeHeaderTriState(
+  states: Iterable<Pick<EnvironmentState, 'support' | 'version' | 'selection'>>,
+): HeaderTriState {
+  let selectableCount = 0;
+  let selectedCount = 0;
+  for (const state of states) {
+    if (isSelectable(state)) {
+      selectableCount += 1;
+      if (state.selection.on) {
+        selectedCount += 1;
+      }
+    }
+  }
+
+  if (selectableCount === 0 || selectedCount === 0) {
+    return 'unchecked';
+  }
+  if (selectedCount === selectableCount) {
+    return 'checked';
+  }
+  return 'indeterminate';
+}
+
+/**
  * Computes the header select-all tri-state for a project type table in `env` (§7.3).
  * Inspects selectable collection rows only.
  */
@@ -396,31 +423,11 @@ export function getHeaderTriState(
   projectType: ProjectType,
   env: EnvironmentId,
 ): HeaderTriState {
-  const selectableCollectionRows = instance.entries.filter(
-    (entry) =>
-      entry.origin === 'collection' &&
-      entry.project.type === projectType &&
-      isSelectable(entry.environments[env]),
-  );
+  const collectionStates = instance.entries
+    .filter((entry) => entry.origin === 'collection' && entry.project.type === projectType)
+    .map((entry) => entry.environments[env]);
 
-  if (selectableCollectionRows.length === 0) {
-    return 'unchecked';
-  }
-
-  let selectedCount = 0;
-  for (const row of selectableCollectionRows) {
-    if (row.environments[env].selection.on) {
-      selectedCount += 1;
-    }
-  }
-
-  if (selectedCount === 0) {
-    return 'unchecked';
-  }
-  if (selectedCount === selectableCollectionRows.length) {
-    return 'checked';
-  }
-  return 'indeterminate';
+  return computeHeaderTriState(collectionStates);
 }
 
 /**

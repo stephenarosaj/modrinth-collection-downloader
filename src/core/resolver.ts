@@ -26,6 +26,7 @@ import {
   isExportableProjectType,
   isPlatformAgnostic,
   isSelectable,
+  isUnverifiedPlatformCandidate,
 } from './model';
 import type { ModrinthClient, ProjectInfo, VersionInfo } from '../ports';
 import { parseCollectionInput } from './collection';
@@ -253,7 +254,7 @@ export function resolveVersionForEnvironment(
   const matchesPlatform = (v: VersionRef): boolean =>
     agnostic || v.platforms.some((p) => p.toLowerCase() === platformLower);
   const isFallbackCandidate = (v: VersionRef): boolean =>
-    !agnostic && matchesGameVersion(v) && v.platforms.length === 0;
+    matchesGameVersion(v) && isUnverifiedPlatformCandidate(v, input.projectType);
 
   const directPool = sortVersionsByPreference(
     usableVersions.filter((v) => matchesGameVersion(v) && matchesPlatform(v)),

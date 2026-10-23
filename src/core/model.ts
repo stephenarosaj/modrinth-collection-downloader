@@ -353,6 +353,17 @@ export function isPlatformAgnostic(type: ProjectType | string): boolean {
 }
 
 /**
+ * Returns true if a version is a game-version fallback candidate with an unverified platform
+ * (`!isPlatformAgnostic(projectType) && version.platforms.length === 0`) (§7.1).
+ */
+export function isUnverifiedPlatformCandidate(
+  version: { platforms: readonly string[] },
+  projectType: ProjectType | string,
+): boolean {
+  return !isPlatformAgnostic(projectType) && version.platforms.length === 0;
+}
+
+/**
  * Type guard checking if a project type is an exportable table type (excludes `'modpack'`).
  */
 export function isExportableProjectType(type: ProjectType | string): type is ExportableProjectType {
