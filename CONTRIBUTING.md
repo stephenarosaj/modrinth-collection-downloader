@@ -28,7 +28,21 @@ Every Pull Request must pass all four verification gates in CI:
 | `yarn lint` | Run ESLint (including architectural boundary checks via `eslint-plugin-boundaries`) |
 | `yarn typecheck` | Run `tsc --noEmit` with `strict` and `noUncheckedIndexedAccess` |
 | `yarn test` | Run the Vitest unit and component test suite |
-| `yarn build` | Build the production static bundle |
+| `yarn build` | Build the production static bundle (`dist/`) |
+
+---
+
+## CI & GitHub Pages Deployment
+
+Two GitHub Actions workflows live in `.github/workflows/`:
+
+1. **Continuous Integration (`.github/workflows/ci.yml`):**
+   - Runs on every push and pull request across all branches.
+   - Executes `yarn install --frozen-lockfile`, `yarn lint`, `yarn typecheck`, `yarn test`, and `yarn build`.
+2. **GitHub Pages Deployment (`.github/workflows/deploy.yml`):**
+   - Triggered on `push` to `main` and manual `workflow_dispatch`.
+   - Runs the full verification suite (`lint`, `typecheck`, `test`, `build`) and deploys `./dist` to the `github-pages` environment via `actions/upload-pages-artifact@v3` and `actions/deploy-pages@v4`.
+   - `vite.config.ts` defaults `base` to `process.env.VITE_BASE_PATH ?? './'`, ensuring built asset paths work at both root domains and `/<repo>/` subpaths.
 
 ---
 

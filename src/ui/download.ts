@@ -38,6 +38,7 @@ export interface ExportEnvironmentZipOptions {
 }
 
 export interface ExportEnvironmentZipResult {
+  env?: EnvironmentId;
   filename: string;
   succeededCount: number;
   totalCount: number;
@@ -143,6 +144,7 @@ export async function exportEnvironmentZip({
 
   if (totalCount === 0) {
     return {
+      env,
       filename,
       succeededCount: 0,
       totalCount: 0,
@@ -240,6 +242,7 @@ export async function exportEnvironmentZip({
       archivePercent: 0,
     });
     return {
+      env,
       filename,
       succeededCount: 0,
       totalCount,
@@ -291,6 +294,7 @@ export async function exportEnvironmentZip({
   onExportBlob(filename, blob);
 
   return {
+    env,
     filename,
     succeededCount,
     totalCount,

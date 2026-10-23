@@ -8,6 +8,8 @@ This guide walks step-by-step through loading a Modrinth collection (or importin
 
 ## 1. Entering a Collection & Target Configuration (or Importing `instance.json`)
 
+![Target Form and Getting Started Empty State](screenshots/01-target-form-and-empty-state.svg)
+
 When you open the application, the configuration panel at the top lets you specify which Modrinth collection to load and the target parameters for version resolution—or restore a previously saved `instance.json` file offline:
 
 1. **Collection URL or ID:**
@@ -27,17 +29,25 @@ When you open the application, the configuration panel at the top lets you speci
 6. **Import instance.json (Offline Restore):**
    - Alternatively, click **Import instance.json** at any time to load a previously exported `<collectionId>-instance.json` file from disk and immediately restore the full review workspace without making any network requests (see [Section 11 — Exporting & Importing `instance.json`](#11-exporting--importing-instancejson-offline-restore)).
 
-### Monitoring or Cancelling Resolution
+### Monitoring, Cancelling, or Retrying Resolution
 
 While the collection is resolving, the **Resolution Progress** panel displays:
 
 - **Progress Bar & Step Counts:** Shows `completed / total` resolution steps as the app fetches collection metadata, batched project details, per-project compatible versions, and transitive required dependencies.
 - **Activity Log:** Streams status messages for each stage of resolution.
-- **Cancel:** Click **Cancel** at any time while resolution is running to abort in-flight Modrinth API requests cleanly and return to the form.
+- **Cancel:** Click **Cancel** at any time while resolution is running to abort in-flight Modrinth API requests cleanly.
+- **Error Formatting, Rate Limits & Retry:**
+  - The Modrinth API client automatically retries HTTP `429` (rate limit) and `5xx` responses up to 3 times with backoff honoring `Retry-After` and `X-Ratelimit-Reset`.
+  - If rate limits or network errors persist, the progress panel translates raw status codes (`429`, `404`, `5xx`, network disconnects) into clear, actionable guidance while preserving the technical error details.
+  - Click **Retry** in the resolution panel to immediately re-run collection resolution with the same target configuration without re-entering your settings.
+- **Partial-Result Resolution:**
+  - If an individual project's version query (`getProjectVersions`) or a transitive dependency lookup fails due to a transient error while the rest of the collection succeeds, the resolver still builds a working **Instance** from all succeeded projects and records the failed project in the **Skipped Projects** section with its error reason so a single broken project never blocks the entire collection.
 
 ---
 
 ## 2. Enabling Environment Columns (Client & Server Toggles)
+
+![Review Tables, Environment Toggles, and Status Symbols](screenshots/02-review-tables-and-statuses.svg)
 
 Above the review tables, two top-level **Environment** toggles control interaction and export gating for the **Client** and **Server** columns:
 
@@ -134,6 +144,8 @@ Each project-type table header includes a **Select All** checkbox for **Client**
 ---
 
 ## 5. Automatic Dependency Selection & User Overrides
+
+![Environment Selection, Auto-Selected Dependency Highlight, and Toast](screenshots/03-selection-and-auto-select-toast.svg)
 
 Required dependencies are managed automatically per environment as you select or deselect projects, while always respecting explicit user overrides.
 
@@ -269,13 +281,16 @@ When a project selected in an active environment requires a dependency that is u
 Not every item returned by Modrinth can be packaged as an individual project file inside an instance. Projects that cannot be resolved into table entries are listed in the **Skipped Projects** section below the review tables:
 
 - **`modpack` Projects:** Modrinth collections sometimes include full modpack projects (`project_type: "modpack"`). Because modpacks are multi-project archives rather than individual mods or packs, they are skipped with the reason that modpack projects are not supported.
-- **`.mrpack` Primary Files & Unsupported Types:** Any project whose resolved primary file is a `.mrpack` archive or whose project type is unrecognized is refused and listed in **Skipped Projects** along with its title, **Open on Modrinth ↗** link, and the specific skip reason.
+- **`.mrpack` Primary Files, Partial Fetch Failures & Unsupported Types:** Any project whose resolved primary file is a `.mrpack` archive, whose project type is unrecognized, or whose individual version fetch failed during partial-result resolution is listed in **Skipped Projects** along with its title, **Open on Modrinth ↗** link, and the specific skip reason.
+- **Empty & All-Skipped Collections:** If a collection contains `0` projects, or if every project in the collection was skipped (for example, a collection consisting entirely of modpacks), an empty-state card explains why no review tables are shown and directs you to the **Skipped Projects** section below.
 
 Skipped projects are informational only and are never included in exports.
 
 ---
 
 ## 11. Exporting & Importing `instance.json` (Offline Restore)
+
+![Export Bar, Outputs, and Download Progress](screenshots/04-export-bar-and-outputs.svg)
 
 You can save a complete, lossless snapshot of your current **Instance** (including all custom selections and per-environment version overrides) and reload it later without touching the network.
 
@@ -318,10 +333,10 @@ Each **Environment** (`client` and `server`) can be exported as a ready-to-use `
 2. **On-Demand Binary Fetching:** Project binaries (`.jar`, `.zip`) are downloaded from Modrinth's CDN only now, using each selected entry's chosen version for that environment.
 3. **Deterministic Naming & Folder Layout:** Every downloaded file is placed into its project-type directory (`mods/`, `plugins/`, `datapacks/`, `resourcepacks/`, `shaderpacks/`) and renamed to `{Title}-{Platform}-{GameVersion}-{VersionNumber}.{ext}` (or `{Title}-{GameVersion}-{VersionNumber}.{ext}` for platform-agnostic types), with `-2`, `-3`, … appended before `.{ext}` if a filename collision occurs in the same folder.
 4. **Live Progress & Cancel:** While binaries are downloading and the `.zip` archive is being packaged, a progress panel shows the current file count (`completed / total`), status message, and a **Cancel** button. Clicking **Cancel** aborts all in-flight downloads immediately and cancels archive creation.
-5. **Partial-Failure Reporting ("Failed downloads are listed; successful ones still zip"):**
+5. **Partial-Failure Reporting & Retry Export ("Failed downloads are listed; successful ones still zip"):**
    - If one or more binary downloads fail while other files succeed, the app **still packages all successful downloads** into `<collectionId>-client.zip` or `<collectionId>-server.zip` and triggers the browser download.
-   - A warning banner lists every failed file and its error reason so you can retry or download the missing file(s) individually.
-   - If all binary downloads fail, no empty `.zip` is produced and the failure list is displayed.
+   - A warning banner lists every failed file and its error reason alongside a **Retry export** button so you can immediately retry the zip export or download the missing file(s) individually.
+   - If all binary downloads fail, no empty `.zip` is produced, the failure list is displayed, and **Retry export** lets you retry with one click.
 
 ---
 

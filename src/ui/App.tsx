@@ -43,7 +43,7 @@ import {
   type ExportEnvironmentZipResult,
   type ZipExportProgress,
 } from './download';
-import { isAbortError } from './utils';
+import { formatUserFacingError, isAbortError } from './utils';
 
 export interface AppProps {
   appName?: string;
@@ -137,6 +137,7 @@ export function App({
   const [flashingCells, setFlashingCells] = useState<ReadonlySet<string>>(() => new Set<string>());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [pendingReResolve, setPendingReResolve] = useState<TargetFormValues | null>(null);
+  const [lastSubmittedTarget, setLastSubmittedTarget] = useState<TargetFormValues | null>(null);
   const [revertToken, setRevertToken] = useState(0);
 
   const instanceRef = useRef<Instance | null>(instance);
@@ -212,6 +213,7 @@ export function App({
         return;
       }
 
+      setLastSubmittedTarget(values);
       abortControllerRef.current?.abort();
       versionAbortControllerRef.current?.abort();
       versionAbortControllerRef.current = null;
@@ -283,13 +285,18 @@ export function App({
           setWasCancelled(true);
           return;
         }
-        const message = err instanceof Error ? err.message : String(err);
-        setResolveError(message || 'Failed to resolve collection.');
+        setResolveError(formatUserFacingError(err, 'Failed to resolve collection.'));
         setIsResolving(false);
       }
     },
     [modrinthClient, clearFlashTimer],
   );
+
+  const handleRetryResolve = useCallback(() => {
+    if (lastSubmittedTarget) {
+      void executeLoadCollection(lastSubmittedTarget);
+    }
+  }, [lastSubmittedTarget, executeLoadCollection]);
 
   const handleRequestLoadOrReResolve = useCallback(
     (values: TargetFormValues) => {
@@ -378,8 +385,7 @@ export function App({
           return;
         }
         importAbortControllerRef.current = null;
-        const message = err instanceof Error ? err.message : String(err);
-        setImportError(message || 'Failed to import instance.json.');
+        setImportError(formatUserFacingError(err, 'Failed to import instance.json.'));
       }
     },
     [clearFlashTimer],
@@ -472,8 +478,7 @@ export function App({
         if (controller.signal.aborted || isAbortError(err)) {
           return;
         }
-        const message = err instanceof Error ? err.message : String(err);
-        setExportError(message || 'Failed to recompute dependency closure.');
+        setExportError(formatUserFacingError(err, 'Failed to recompute dependency closure.'));
       }
     },
     [modrinthClient, applyChangesFeedback],
@@ -487,8 +492,7 @@ export function App({
     try {
       exportInstanceJson(instance, onExportJson);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      setExportError(message || 'Failed to export instance.json.');
+      setExportError(formatUserFacingError(err, 'Failed to export instance.json.'));
     }
   }, [instance, onExportJson]);
 
@@ -550,8 +554,7 @@ export function App({
         if (controller.signal.aborted || isAbortError(err)) {
           return;
         }
-        const message = err instanceof Error ? err.message : String(err);
-        setExportError(message || `Failed to export ${env}.zip.`);
+        setExportError(formatUserFacingError(err, `Failed to export ${env}.zip.`));
       }
     },
     [fileFetcher, archiveWriter, onExportBlob],
@@ -586,8 +589,7 @@ export function App({
       ) {
         return;
       }
-      const message = err instanceof Error ? err.message : String(err);
-      setExportError(message || 'Failed to export .mrpack.');
+      setExportError(formatUserFacingError(err, 'Failed to export .mrpack.'));
     } finally {
       if (exportAbortControllerRef.current === controller) {
         exportAbortControllerRef.current = null;
@@ -669,7 +671,28 @@ export function App({
           error={resolveError}
           wasCancelled={wasCancelled}
           onCancel={handleCancelResolve}
+          onRetry={lastSubmittedTarget ? handleRetryResolve : undefined}
         />
+
+        {!instance && !isResolving && !resolveError && !wasCancelled && (
+          <section className="card empty-workspace-card" aria-label="Getting started">
+            <h2>Ready to build an instance</h2>
+            <ol className="empty-steps">
+              <li>
+                Paste a Modrinth collection link or ID above to resolve compatible project files, or
+                restore a saved configuration file offline.
+              </li>
+              <li>
+                Toggle your target environments to inspect resolved versions, dependencies, and
+                compatibility warnings.
+              </li>
+              <li>
+                Download ready-to-use environment archives, a portable configuration snapshot, or a
+                Modrinth modpack package.
+              </li>
+            </ol>
+          </section>
+        )}
 
         {instance && (
           <div className="review-workspace">
@@ -743,6 +766,7 @@ export function App({
               activeEnvironments={activeEnvironments}
               flashingCells={flashingCells}
               isRecomputing={isRecomputing || isExporting}
+              skippedCount={combinedSkipped.length}
               onToggleEntrySelection={handleToggleEntrySelection}
               onToggleSelectAll={handleToggleSelectAll}
               onChangeEntryVersion={handleChangeEntryVersion}

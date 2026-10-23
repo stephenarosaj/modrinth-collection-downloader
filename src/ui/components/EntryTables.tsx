@@ -32,6 +32,7 @@ export interface EntryTablesProps {
   activeEnvironments?: ActiveEnvironments;
   flashingCells?: ReadonlySet<string>;
   isRecomputing?: boolean;
+  skippedCount?: number;
   onToggleEntrySelection?: (projectId: string, env: EnvironmentId, selected: boolean) => void;
   onToggleSelectAll?: (
     projectType: ExportableProjectType,
@@ -508,6 +509,7 @@ export function EntryTables({
   activeEnvironments = DEFAULT_ACTIVE_ENVIRONMENTS,
   flashingCells = EMPTY_FLASHING_SET,
   isRecomputing = false,
+  skippedCount,
   onToggleEntrySelection,
   onToggleSelectAll,
   onChangeEntryVersion,
@@ -551,6 +553,11 @@ export function EntryTables({
     return (
       <div className="empty-tables card">
         <p>No exportable projects found in this collection.</p>
+        {skippedCount !== undefined && skippedCount > 0 && (
+          <p className="empty-tables-note">
+            {skippedCount} skipped project{skippedCount === 1 ? ' is' : 's are'} listed below.
+          </p>
+        )}
       </div>
     );
   }

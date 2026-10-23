@@ -1013,6 +1013,37 @@ tbody:last-of-type tr:last-child:not(:first-child) .status-tooltip {
   font-size: 0.85rem;
 }
 
+.zip-retry-btn {
+  flex-shrink: 0;
+}
+
+/* Empty & Edge States (M5) */
+.empty-workspace-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.empty-workspace-card h2 {
+  font-size: 1.2rem;
+}
+
+.empty-steps {
+  margin-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.empty-tables-note {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
 footer {
   margin-top: 40px;
   color: var(--text-muted);

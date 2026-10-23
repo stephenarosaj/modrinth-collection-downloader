@@ -7,6 +7,7 @@ export interface ResolveProgressPanelProps {
   error: string | null;
   wasCancelled: boolean;
   onCancel: () => void;
+  onRetry?: () => void;
 }
 
 const PHASE_LABELS: Readonly<Record<ResolveProgress['phase'], string>> = {
@@ -24,6 +25,7 @@ export function ResolveProgressPanel({
   error,
   wasCancelled,
   onCancel,
+  onRetry,
 }: ResolveProgressPanelProps) {
   if (!isResolving && !progress && !error && !wasCancelled) {
     return null;
@@ -57,6 +59,11 @@ export function ResolveProgressPanel({
         {isResolving && (
           <button type="button" className="btn btn-danger" onClick={onCancel}>
             Cancel
+          </button>
+        )}
+        {!isResolving && (error !== null || wasCancelled) && onRetry && (
+          <button type="button" className="btn btn-secondary" onClick={onRetry}>
+            Retry
           </button>
         )}
       </div>

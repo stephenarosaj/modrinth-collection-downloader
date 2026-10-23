@@ -118,3 +118,18 @@ At the center of the application is a single immutable data structure: **`Instan
    - **Environment Zip Trees:** `toFileTree(instance): { client: FileTree; server: FileTree }` computes target folder paths, collision-safe filenames, and download URLs for `<collectionId>-client.zip` and `<collectionId>-server.zip`.
    - **Portable JSON:** `serialize(instance): string` and `deserialize(json): Instance` provide lossless, schema-validated `instance.json` export and offline import.
    - **Modrinth Modpack:** `toMrpack(instance, opts): MrpackIndex` projects the `Instance` into a `modrinth.index.json` manifest packaged into `<collectionId>.mrpack`.
+
+---
+
+## 5. UI Export Orchestration & Resilience (`src/ui/`)
+
+The `src/ui/` layer depends exclusively on `src/core/` and `src/ports/` (interfaces injected by `src/app/`):
+
+- **Export Orchestrator (`src/ui/download.ts`):**
+  - `exportEnvironmentZip`: Uses `toFileTree(instance)[env]` to fetch binary files on demand via `FileFetcher` with bounded concurrency, live progress reporting, and `AbortSignal` cancellation, then writes all succeeded files to `ArchiveWriter`. If a subset of downloads fail, it packages all successful files into `<collectionId>-<env>.zip` and returns the failure list (`failed`) for display and retry.
+  - `exportInstanceJson`: Calls `serialize(instance)` (which validates against `schema/instance.schema.json`) and triggers a browser download of `<collectionId>-instance.json`.
+  - `exportMrpack`: Calls `toMrpack(instance, opts)` and writes `modrinth.index.json` into `<collectionId>.mrpack` via `ArchiveWriter` without fetching project binaries.
+- **Partial-Result Resolution (`src/core/resolver.ts`):**
+  - When a subset of `getProjectVersions` or transitive dependency requests fail with non-abort errors, `resolveCollection` records the affected projects in `skipped` and returns a valid `Instance` containing all succeeded projects.
+- **Large-Collection Rendering (`src/ui/components/EntryTables.tsx`):**
+  - Individual table rows (`<EntryRow />`) are wrapped in `React.memo` with custom equality checks on row model, row status, active environments, and cell flash state so toggling a single cell in a 500-entry collection only re-renders the affected rows.

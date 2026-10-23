@@ -79,6 +79,13 @@ export function ExportBar({
     mrpackFileCount === 0 || isExporting || isRecomputing || !canExportMrpack;
 
   const progressPercent = computeProgressPercent(zipProgress);
+  const retryZipEnv: EnvironmentId | null =
+    zipResult !== null
+      ? (zipResult.env ??
+        (zipResult.filename.endsWith('-server.zip') || zipResult.filename.startsWith('server.')
+          ? 'server'
+          : 'client'))
+      : null;
 
   return (
     <section className="card export-bar" aria-label="Export outputs">
@@ -200,6 +207,16 @@ export function ExportBar({
               ))}
             </ul>
           </div>
+          {retryZipEnv !== null && (
+            <button
+              type="button"
+              className="btn btn-secondary zip-retry-btn"
+              onClick={() => onExportEnvironmentZip(retryZipEnv)}
+              disabled={retryZipEnv === 'server' ? serverZipDisabled : clientZipDisabled}
+            >
+              Retry {retryZipEnv}.zip export
+            </button>
+          )}
         </div>
       )}
     </section>

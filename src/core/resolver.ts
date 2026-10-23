@@ -220,6 +220,16 @@ function throwIfAborted(signal?: AbortSignal): void {
   }
 }
 
+function isAbortError(err: unknown, signal?: AbortSignal): boolean {
+  if (signal?.aborted) {
+    return true;
+  }
+  if (!err || typeof err !== 'object') {
+    return false;
+  }
+  return 'name' in err && (err as { name?: string }).name === 'AbortError';
+}
+
 /**
  * Resolves a single project's version and candidate list for one environment (§7.1).
  *
@@ -819,6 +829,8 @@ export async function resolveCollection(
 
   // Fetch versions for exportable collection projects
   let loadedVersions = 0;
+  const failedCollectionVersionErrors: unknown[] = [];
+  const failedCollectionProjectIds = new Set<string>();
   for (const projectId of exportableCollectionIds) {
     throwIfAborted(opts.signal);
     opts.onProgress?.({
@@ -827,20 +839,56 @@ export async function resolveCollection(
       total: exportableCollectionIds.length,
       message: `Fetching versions for ${projectId}`,
     });
-    const versions = await client.getProjectVersions(
-      projectId,
-      { gameVersion: target.gameVersion },
-      requestOpts,
-    );
-    versionsByProject.set(projectId, versions);
-    for (const v of versions) {
-      versionsById.set(v.id, v);
+    try {
+      const versions = await client.getProjectVersions(
+        projectId,
+        { gameVersion: target.gameVersion },
+        requestOpts,
+      );
+      versionsByProject.set(projectId, versions);
+      for (const v of versions) {
+        versionsById.set(v.id, v);
+      }
+      loadedVersions += 1;
+    } catch (err: unknown) {
+      if (isAbortError(err, opts.signal)) {
+        throw err;
+      }
+      failedCollectionVersionErrors.push(err);
+      failedCollectionProjectIds.add(projectId);
+      versionsByProject.set(projectId, []);
+      const proj = projectMap.get(projectId)!;
+      recordSkipped({
+        id: proj.id,
+        slug: proj.slug,
+        title: proj.title,
+        type: proj.type,
+        modrinthUrl: proj.modrinthUrl,
+        reason: `Failed to fetch versions: ${err instanceof Error ? err.message : String(err)}`,
+      });
+      loadedVersions += 1;
+      opts.onProgress?.({
+        phase: 'versions',
+        loaded: loadedVersions,
+        total: exportableCollectionIds.length,
+        message: `Warning: Failed to fetch versions for ${proj.title} (${projectId})`,
+      });
     }
-    loadedVersions += 1;
   }
 
+  if (
+    exportableCollectionIds.length > 0 &&
+    failedCollectionVersionErrors.length === exportableCollectionIds.length
+  ) {
+    throw failedCollectionVersionErrors[0];
+  }
+
+  const resolvedCollectionIds = exportableCollectionIds.filter(
+    (id) => !failedCollectionProjectIds.has(id),
+  );
+
   // Fixed-point dependency fetch & closure loop across both environments
-  const collectionIdSet = new Set<string>(exportableCollectionIds);
+  const collectionIdSet = new Set<string>(resolvedCollectionIds);
   let clientClosure!: EnvClosureResult;
   let serverClosure!: EnvClosureResult;
 
@@ -848,7 +896,7 @@ export async function resolveCollection(
     throwIfAborted(opts.signal);
     clientClosure = computeEnvironmentClosureInMemory(
       'client',
-      exportableCollectionIds,
+      resolvedCollectionIds,
       target,
       projectMap,
       versionsByProject,
@@ -860,7 +908,7 @@ export async function resolveCollection(
     );
     serverClosure = computeEnvironmentClosureInMemory(
       'server',
-      exportableCollectionIds,
+      resolvedCollectionIds,
       target,
       projectMap,
       versionsByProject,
@@ -895,7 +943,22 @@ export async function resolveCollection(
         fetchedProjectIds.add(id);
       }
 
-      const depProjects = await client.getProjects(missingProjects, requestOpts);
+      let depProjects: ProjectInfo[] = [];
+      let depProjectsFetchError: unknown = null;
+      try {
+        depProjects = await client.getProjects(missingProjects, requestOpts);
+      } catch (err: unknown) {
+        if (isAbortError(err, opts.signal)) {
+          throw err;
+        }
+        depProjectsFetchError = err;
+        opts.onProgress?.({
+          phase: 'dependencies',
+          loaded: fetchedProjectIds.size,
+          total: fetchedProjectIds.size,
+          message: `Warning: Failed to fetch dependency projects (${err instanceof Error ? err.message : String(err)})`,
+        });
+      }
       for (const p of depProjects) {
         projectMap.set(p.id, p);
       }
@@ -904,8 +967,23 @@ export async function resolveCollection(
         const proj = projectMap.get(depId);
         if (!proj) {
           // Create a placeholder project with no versions so dependency unavailability is surfaced in status (§7.4)
-          projectMap.set(depId, makePlaceholderProjectInfo(depId));
+          const placeholder = makePlaceholderProjectInfo(depId);
+          projectMap.set(depId, placeholder);
           versionsByProject.set(depId, []);
+          if (depProjectsFetchError !== null) {
+            recordSkipped({
+              id: placeholder.id,
+              slug: placeholder.slug,
+              title: placeholder.title,
+              type: placeholder.type,
+              modrinthUrl: placeholder.modrinthUrl,
+              reason: `Failed to fetch dependency project: ${
+                depProjectsFetchError instanceof Error
+                  ? depProjectsFetchError.message
+                  : String(depProjectsFetchError)
+              }`,
+            });
+          }
           continue;
         }
 
@@ -925,14 +1003,35 @@ export async function resolveCollection(
           continue;
         }
 
-        const versions = await client.getProjectVersions(
-          depId,
-          { gameVersion: target.gameVersion },
-          requestOpts,
-        );
-        versionsByProject.set(depId, versions);
-        for (const v of versions) {
-          versionsById.set(v.id, v);
+        try {
+          const versions = await client.getProjectVersions(
+            depId,
+            { gameVersion: target.gameVersion },
+            requestOpts,
+          );
+          versionsByProject.set(depId, versions);
+          for (const v of versions) {
+            versionsById.set(v.id, v);
+          }
+        } catch (err: unknown) {
+          if (isAbortError(err, opts.signal)) {
+            throw err;
+          }
+          versionsByProject.set(depId, []);
+          recordSkipped({
+            id: proj.id,
+            slug: proj.slug,
+            title: proj.title,
+            type: proj.type,
+            modrinthUrl: proj.modrinthUrl,
+            reason: `Failed to fetch versions: ${err instanceof Error ? err.message : String(err)}`,
+          });
+          opts.onProgress?.({
+            phase: 'dependencies',
+            loaded: fetchedProjectIds.size,
+            total: fetchedProjectIds.size,
+            message: `Warning: Failed to fetch versions for ${proj.title} (${depId})`,
+          });
         }
       }
     }
@@ -941,13 +1040,25 @@ export async function resolveCollection(
       for (const vId of missingVersions) {
         fetchedVersionIds.add(vId);
       }
-      const pinnedFetched = await client.getVersionsByIds(missingVersions, requestOpts);
-      for (const v of pinnedFetched) {
-        versionsById.set(v.id, v);
-        const existingList = versionsByProject.get(v.projectId);
-        if (existingList && !existingList.some((ev) => ev.id === v.id)) {
-          existingList.push(v);
+      try {
+        const pinnedFetched = await client.getVersionsByIds(missingVersions, requestOpts);
+        for (const v of pinnedFetched) {
+          versionsById.set(v.id, v);
+          const existingList = versionsByProject.get(v.projectId);
+          if (existingList && !existingList.some((ev) => ev.id === v.id)) {
+            existingList.push(v);
+          }
         }
+      } catch (err: unknown) {
+        if (isAbortError(err, opts.signal)) {
+          throw err;
+        }
+        opts.onProgress?.({
+          phase: 'dependencies',
+          loaded: fetchedProjectIds.size,
+          total: fetchedProjectIds.size,
+          message: `Warning: Failed to fetch pinned versions (${err instanceof Error ? err.message : String(err)})`,
+        });
       }
     }
   }
@@ -964,7 +1075,7 @@ export async function resolveCollection(
   }
 
   const allEntryProjectIds = [
-    ...exportableCollectionIds,
+    ...resolvedCollectionIds,
     ...modpackCollectionProjects.map((p) => p.id),
     ...dependencyProjectIds,
   ];
