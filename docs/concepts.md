@@ -22,7 +22,12 @@ Use these exact terms across code, UI, and documentation:
 
 ## 2. The Instance Model & Independent Environments
 
-All three export formats (`client.zip`/`server.zip`, `instance.json`, `.mrpack`) and the review UI tables are pure projections of a single data structure: the **Instance**.
+All three export formats (`client.zip`/`server.zip`, `instance.json`, `.mrpack`) and the review UI tables are pure projections of a single data structure: the **Instance** (`src/core/model.ts`):
+
+- `toTables(instance)` (`src/core/projections.ts`) → ordered `TableModel[]` (`mod`, `plugin`, `datapack`, `resourcepack`, `shader`) with collection `rows` and visible `dependencies` footers.
+- `toFileTree(instance)` (`src/core/projections.ts`) → deterministic `{ client: FileTree; server: FileTree }` archive layouts using `formatFilename` and per-folder collision deduplication (`src/core/naming.ts`).
+- `serialize(instance)` / `deserialize(json)` (`src/core/serialize.ts`) → schema-validated `instance.json` with deterministic key ordering.
+- `toMrpack(instance, opts)` (`src/core/projections.ts`) → Modrinth `modrinth.index.json` (`MrpackIndex`) with per-environment support mapping, split entries when client and server choose different versions, plugin exclusion warnings (`getMrpackWarnings`), and optional loader version dependency mapping.
 
 Each **Environment** (`client` and `server`) is a **fully independent lane**:
 - Its own `support` value (`required`, `optional`, `unsupported`, `unknown`)
@@ -116,7 +121,10 @@ For each project and each environment independently, given target `{ gameVersion
 
 ## 8. Status and Symbol Reference
 
-`computeStatus(instance)` is a pure function that derives `Status` (`{ kind, reasons }`) for every environment cell where `support !== 'unsupported'`. `status` is never stored in `Instance` or serialized to `instance.json`.
+Status is derived purely from `Instance` (and optional active environment toggles) and is never stored in `Instance` or serialized to `instance.json`:
+
+- `computeEntryStatus(instance, activeEnvironments?): Map<string, EntryStatus>` returns `{ client: Status | null, server: Status | null, row: Status | null }` per entry. Inactive environments, non-exportable (`modpack`) entries, and `unsupported` cells (when `NEEDED_BUT_UNAVAILABLE` does not apply) return `null`; `row` aggregates the worst active cell `Status` (or `null` if all active cells are `null`).
+- `computeStatus(instance, activeEnvironments?): InstanceStatusMap` (`Map<string, Record<EnvironmentId, Status>>`) returns per-environment `Status` (`{ kind, reasons }`) for every entry, coalescing `null` cells from `computeEntryStatus` to `{ kind: 'ok', reasons: [] }`.
 
 ### Status Reasons (Per Environment Cell)
 

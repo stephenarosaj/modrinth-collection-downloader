@@ -11,8 +11,8 @@ The authoritative JSON Schema lives in [`schema/instance.schema.json`](../schema
 - **Self-Contained Review State:** `instance.json` stores target metadata, all resolved collection and dependency entries, candidate version pools, chosen versions, dependency links, and user/auto selections for both `client` and `server` environments.
 - **No Derived State:** `status` (`computeStatus(instance)`) is a pure derived projection and is **never** stored in `instance.json`.
 - **No Embedded Binaries:** Binary files (`.jar`, `.zip`) are not embedded; instead, each `VersionRef` stores a `FileRef` containing the CDN download `url`, `filename`, `size`, `sha1`, and `sha512` hashes so binaries can be fetched on demand when exporting archives.
-- **Deterministic Serialization:** `serialize(instance)` outputs pretty-printed JSON with a stable key order.
-- **Strict Validation:** Both `serialize(instance)` (on export) and `deserialize(json)` (on import) validate against `schema/instance.schema.json`. Unknown future `schemaVersion` values produce a clear validation error.
+- **Deterministic Serialization:** `serialize(instance)` (`src/core/serialize.ts`) outputs pretty-printed JSON (`2` spaces) with a canonical, deterministic property order (`schemaVersion`, `meta`, `entries`, and canonical nested keys).
+- **Strict Validation:** Both `serialize(instance)` (on export) and `deserialize(json)` (on import) validate against `schema/instance.schema.json` via `validateInstanceSchema(data)` (`additionalProperties: false` on every object). Unknown future `schemaVersion` values (e.g., `schemaVersion: 2`) immediately throw a descriptive error naming `schemaVersion`.
 
 ---
 
