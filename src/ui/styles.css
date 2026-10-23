@@ -147,7 +147,13 @@ header p {
 
 .form-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
+  gap: 10px;
+}
+
+.import-error-alert {
+  margin-top: 14px;
 }
 
 /* Buttons */
@@ -897,6 +903,113 @@ tbody:last-of-type tr:last-child:not(:first-child) .status-tooltip {
 
 .skipped-reason {
   color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* Export Bar (M4) */
+.export-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.export-bar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.export-group,
+.export-mrpack-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.export-count-badge {
+  margin-right: 0;
+  background: rgba(8, 18, 12, 0.22);
+  border-color: transparent;
+  color: inherit;
+}
+
+.export-platform-version-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.export-inline-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.export-platform-version-field input {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 9px 12px;
+  font-size: 0.9rem;
+  width: 160px;
+}
+
+.export-platform-version-field input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.export-platform-version-field input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.zip-export-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.zip-export-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.zip-export-progress-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.zip-partial-failure-alert {
+  align-items: flex-start;
+}
+
+.zip-partial-failure-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.zip-partial-failure-summary {
+  font-weight: 600;
+}
+
+.zip-failed-files-list {
+  margin-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   font-size: 0.85rem;
 }
 

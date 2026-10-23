@@ -12,6 +12,11 @@ if (!rootEl) {
 
 createRoot(rootEl).render(
   <StrictMode>
-    <App appName={APP_NAME} modrinthClient={services.modrinthClient} />
+    <App
+      appName={APP_NAME}
+      modrinthClient={services.modrinthClient}
+      fileFetcher={services.fileFetcher}
+      archiveWriter={services.archiveWriter}
+    />
   </StrictMode>,
 );

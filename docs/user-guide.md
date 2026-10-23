@@ -1,14 +1,14 @@
 # User Guide
 
-This guide walks step-by-step through loading a Modrinth collection, enabling **Environment** columns, reviewing and customizing project selections and versions across per-type tables, inspecting transitive dependencies and skipped projects, and exporting an Instance with **Modrinth Collection Downloader** (`modrinth-collection-downloader`).
+This guide walks step-by-step through loading a Modrinth collection (or importing a saved `instance.json` offline), enabling **Environment** columns, reviewing and customizing project selections and versions across per-type tables, inspecting transitive dependencies and skipped projects, and exporting an Instance (`instance.json`, `client.zip`, `server.zip`, and `.mrpack`) with **Modrinth Collection Downloader** (`modrinth-collection-downloader`).
 
 > _Terminology Note:_ Throughout the app and documentation, `client` and `server` are always referred to as **Environments**, and mod/plugin ecosystems (`Fabric`, `Quilt`, `Forge`, `NeoForge`, `Paper`, etc.) are always referred to as **Platforms**. See [Concepts & Domain Reference](concepts.md) for the complete glossary and rules.
 
 ---
 
-## 1. Entering a Collection & Target Configuration
+## 1. Entering a Collection & Target Configuration (or Importing `instance.json`)
 
-When you open the application, the configuration panel at the top lets you specify which Modrinth collection to load and the target parameters for version resolution:
+When you open the application, the configuration panel at the top lets you specify which Modrinth collection to load and the target parameters for version resolution—or restore a previously saved `instance.json` file offline:
 
 1. **Collection URL or ID:**
    - Paste a full Modrinth collection URL (for example, `https://modrinth.com/collection/<id>`) or enter a bare collection ID directly.
@@ -24,6 +24,8 @@ When you open the application, the configuration panel at the top lets you speci
    - **Newest (`newest`):** Uncheck the option if you want the resolver to pick the compatible version with the latest `publishedAt` timestamp regardless of release channel (`release`, `beta`, or `alpha`).
 5. **Load collection:**
    - Click **Load collection** to start resolving the collection against your target configuration.
+6. **Import instance.json (Offline Restore):**
+   - Alternatively, click **Import instance.json** at any time to load a previously exported `<collectionId>-instance.json` file from disk and immediately restore the full review workspace without making any network requests (see [Section 11 — Exporting & Importing `instance.json`](#11-exporting--importing-instancejson-offline-restore)).
 
 ### Monitoring or Cancelling Resolution
 
@@ -37,23 +39,23 @@ While the collection is resolving, the **Resolution Progress** panel displays:
 
 ## 2. Enabling Environment Columns (Client & Server Toggles)
 
-Above the review tables, two top-level **Environment** toggles control interaction for the **Client** and **Server** columns:
+Above the review tables, two top-level **Environment** toggles control interaction and export gating for the **Client** and **Server** columns:
 
-- **Off by Default:** Both **Client** and **Server** environment toggles start **off by default** when a collection is first loaded. The tool never assumes whether you are building a client instance, a server instance, or both.
+- **Off by Default:** Both **Client** and **Server** environment toggles start **off by default** when a collection is loaded or an `instance.json` file is imported. The tool never assumes whether you are building a client instance, a server instance, or both.
 - **Locked (Toggle Off) State:** While an environment toggle is off:
   - That environment's column across all project-type tables is visually grayed out.
   - All checkboxes (including the header **Select All** checkbox) and version dropdowns in that column are disabled (`disabled`), preventing accidental edits.
-  - The underlying default selections and resolved versions **still show through** (grayed out, not blanked), so you can preview what is resolved before unlocking the column.
-  - Environment-specific status symbols and export actions for that environment remain inactive until the toggle is turned on.
+  - The underlying selections and resolved versions **still show through** (grayed out, not blanked), so you can preview what is resolved before unlocking the column.
+  - Status symbols for that environment are suppressed, and that environment's zip export button (**Export client.zip** or **Export server.zip**) is disabled until the toggle is turned on.
 - **Unlocked (Toggle On) State:**
-  - Turning an environment toggle **on** immediately unlocks interaction for that column across all tables, revealing the pre-populated default selections ready for customization.
+  - Turning an environment toggle **on** immediately unlocks interaction for that column across all tables, activates status evaluation for that environment, and enables that environment's zip export button (when at least one entry is selected in that environment).
   - Turning an environment toggle **off** again locks interaction without discarding or resetting any of your custom selections or version overrides—re-enabling the toggle restores your exact state.
 
 ---
 
 ## 3. Reading the Per-Type Review Tables
 
-Once resolution completes, the resolved **Instance** is displayed as review tables grouped by **Project Type** in canonical order:
+Once resolution (or `instance.json` import) completes, the **Instance** is displayed as review tables grouped by **Project Type** in canonical order:
 
 1. **Mods** (`mod`)
 2. **Plugins** (`plugin`)
@@ -273,11 +275,13 @@ Skipped projects are informational only and are never included in exports.
 
 ---
 
-## 11. Exporting `instance.json`
+## 11. Exporting & Importing `instance.json` (Offline Restore)
 
-Once a collection is loaded and resolved, you can save a complete, lossless snapshot of the current **Instance** (including your custom selections and per-environment version overrides):
+You can save a complete, lossless snapshot of your current **Instance** (including all custom selections and per-environment version overrides) and reload it later without touching the network.
 
-1. Click **Export instance.json** in the Collection summary header above the review tables.
+### Exporting `<collectionId>-instance.json`
+
+1. Click **Export instance.json** in the export bar above the review tables.
 2. Before downloading, the app serializes the current `Instance` (`serialize(instance)`) and validates it against [`schema/instance.schema.json`](../schema/instance.schema.json).
 3. Your browser downloads `<collectionId>-instance.json` (pretty-printed with deterministic key ordering).
 
@@ -286,14 +290,54 @@ What `<collectionId>-instance.json` contains:
 - `meta`: Collection name, source `collectionId` and `url`, target `gameVersion`, `platform`, and `releasePreference`, plus the `createdAt` ISO-8601 timestamp.
 - `entries`: Every resolved collection and dependency entry, including both `client` and `server` environment states (`support`, `candidates`, chosen `version` with primary file CDN URL and `sha1`/`sha512` hashes, `resolution`, `dependencies`, `requiredBy`, and `selection`). Derived `status` is never stored in `instance.json`.
 
+### Importing `instance.json` Offline
+
+1. Click **Import instance.json** in the top configuration panel (or in the workspace header) and choose a saved `.json` file.
+2. The app validates the file against [`schema/instance.schema.json`](../schema/instance.schema.json) via `deserialize(json)`.
+3. **Zero Network Requests:** If valid, the full review workspace (`meta`, per-type tables, candidate version dropdowns, dependency footers, and saved `user`/`auto` selections) is restored immediately offline.
+4. Both **Client** and **Server** top-level environment toggles start **off** (locked) on import so you can choose which environment(s) to unlock and export.
+5. **Validation & Version Errors:** If the file is malformed JSON, fails schema validation, or uses an unsupported future `schemaVersion` (e.g., `schemaVersion: 2`), a clear error banner explains the failure without overwriting any existing state.
+
 See [Instance Format (`instance.json`)](instance-format.md) for the full schema reference.
 
 ---
 
-## 12. Upcoming Export Features (Milestone M4)
+## 12. Exporting Environment Zip Archives (`client.zip` & `server.zip`)
 
-> _Note: The following export and import capabilities build on the interactive review tables in Milestone M4._
+Each **Environment** (`client` and `server`) can be exported as a ready-to-use `.zip` archive organized into per-type folders (`mods/`, `plugins/`, `datapacks/`, `resourcepacks/`, `shaderpacks/`).
 
-- **`<collectionId>-client.zip` & `<collectionId>-server.zip`:** Downloads primary files for entries selected in the respective environment into per-type folders (`mods/`, `plugins/`, `datapacks/`, `resourcepacks/`, `shaderpacks/`).
-- **`<collectionId>.mrpack`:** Generates a Modrinth modpack archive (`modrinth.index.json`) referencing CDN URLs, SHA-1/SHA-512 hashes, and per-environment support annotations.
-- **Offline `instance.json` Import:** Re-imports a previously saved `instance.json` file to restore the full review state without network requests.
+### Prerequisites & Button Gating
+
+- **Export client.zip** is enabled when the top-level **Client** environment toggle is **on** and at least one exportable entry is selected in `client`.
+- **Export server.zip** is enabled when the top-level **Server** environment toggle is **on** and at least one exportable entry is selected in `server`.
+- If an environment's toggle is off or no entries are selected in that environment, its zip export button is disabled.
+
+### Downloading Binaries, Progress, Cancellation & Partial Failures
+
+1. Click **Export client.zip** or **Export server.zip**.
+2. **On-Demand Binary Fetching:** Project binaries (`.jar`, `.zip`) are downloaded from Modrinth's CDN only now, using each selected entry's chosen version for that environment.
+3. **Deterministic Naming & Folder Layout:** Every downloaded file is placed into its project-type directory (`mods/`, `plugins/`, `datapacks/`, `resourcepacks/`, `shaderpacks/`) and renamed to `{Title}-{Platform}-{GameVersion}-{VersionNumber}.{ext}` (or `{Title}-{GameVersion}-{VersionNumber}.{ext}` for platform-agnostic types), with `-2`, `-3`, … appended before `.{ext}` if a filename collision occurs in the same folder.
+4. **Live Progress & Cancel:** While binaries are downloading and the `.zip` archive is being packaged, a progress panel shows the current file count (`completed / total`), status message, and a **Cancel** button. Clicking **Cancel** aborts all in-flight downloads immediately and cancels archive creation.
+5. **Partial-Failure Reporting ("Failed downloads are listed; successful ones still zip"):**
+   - If one or more binary downloads fail while other files succeed, the app **still packages all successful downloads** into `<collectionId>-client.zip` or `<collectionId>-server.zip` and triggers the browser download.
+   - A warning banner lists every failed file and its error reason so you can retry or download the missing file(s) individually.
+   - If all binary downloads fail, no empty `.zip` is produced and the failure list is displayed.
+
+---
+
+## 13. Exporting a Modrinth Modpack (`.mrpack`)
+
+You can also export the Instance as a lightweight `<collectionId>.mrpack` archive (`modrinth.index.json`, `formatVersion: 1`) for direct import into launchers such as **Prism Launcher** or the **Modrinth App**:
+
+1. **Platform version (optional):**
+   - In the export controls, you may optionally enter a **Platform version** (for example, `0.16.10` for Fabric or `21.1.72` for NeoForge).
+   - If provided, `modrinth.index.json` includes the corresponding platform dependency key (`fabric` → `"fabric-loader"`, `quilt` → `"quilt-loader"`, `forge` → `"forge"`, `neoforge` → `"neoforge"`) alongside `"minecraft": "<gameVersion>"`.
+   - If left blank (or if the target platform has no `.mrpack` dependency key), only `"minecraft": "<gameVersion>"` is written to `dependencies`.
+2. **Plugin Exclusion Warning:**
+   - Because the `.mrpack` format does not support server plugins, any selected `plugin` entries are excluded from `.mrpack` exports. Whenever one or more plugins are selected, a visible warning lists the excluded plugin titles (use **Export server.zip** to package plugins into `plugins/`).
+3. **Click Export .mrpack:**
+   - **Export .mrpack** is enabled whenever at least one non-plugin entry (`mod`, `datapack`, `resourcepack`, `shader`) is selected in either `client` or `server`.
+   - Clicking **Export .mrpack** packages `modrinth.index.json` into `<collectionId>.mrpack` **instantly with zero binary downloads**—all files reference their Modrinth CDN URLs, `sha1`/`sha512` hashes, file sizes, and per-environment support (`"required"`, `"optional"`, or `"unsupported"`).
+   - If `client` and `server` selected different versions of the same project, `.mrpack` automatically includes two separate file entries scoped to their respective environments.
+
+See [Output Formats](output-formats.md) for full details on `.zip` naming rules, `.mrpack` structure, and launcher verification notes.

@@ -6,41 +6,71 @@ import {
   computeEntryStatus,
   deselectAllInTable,
   deselectEntry,
+  deserialize,
   formatPlatformDisplayName,
+  getMrpackWarnings,
   getSkippedEntries,
   hasSelectionChangedFromDefault,
   resolveCollection,
   selectAllInTable,
   selectEntry,
   setEntryVersion,
+  toFileTree,
+  toMrpack,
   toTables,
   type Change,
   type EnvironmentId,
   type ExportableProjectType,
+  type FileTree,
   type Instance,
+  type MrpackIndex,
   type ResolveProgress,
   type SkippedProject,
 } from '../core';
-import type { ModrinthClient } from '../ports';
+import type { ArchiveWriter, FileFetcher, ModrinthClient } from '../ports';
 import { AutoSelectToast, formatAutoSelectChanges } from './components/AutoSelectToast';
 import { ConfirmReResolveDialog } from './components/ConfirmReResolveDialog';
 import { EntryTables } from './components/EntryTables';
 import { EnvironmentTogglesBar, type ActiveEnvironments } from './components/EnvironmentTogglesBar';
+import { ExportBar } from './components/ExportBar';
 import { ResolveProgressPanel } from './components/ResolveProgressPanel';
 import { SkippedSection } from './components/SkippedSection';
 import { TargetForm, type TargetFormValues } from './components/TargetForm';
-import { exportInstanceJson } from './download';
+import {
+  exportEnvironmentZip,
+  exportInstanceJson,
+  exportMrpackArchive,
+  type ExportEnvironmentZipResult,
+  type ZipExportProgress,
+} from './download';
 import { isAbortError } from './utils';
 
 export interface AppProps {
   appName?: string;
   modrinthClient?: ModrinthClient;
+  fileFetcher?: FileFetcher;
+  archiveWriter?: ArchiveWriter;
   onExportJson?: (filename: string, jsonContent: string) => void;
+  onExportBlob?: (filename: string, blob: Blob) => void;
 }
 
 const INITIAL_ACTIVE_ENVIRONMENTS: ActiveEnvironments = {
   client: false,
   server: false,
+};
+
+const EMPTY_FILE_TREES: { client: FileTree; server: FileTree } = {
+  client: { environment: 'client', files: [] },
+  server: { environment: 'server', files: [] },
+};
+
+const EMPTY_MRPACK_PREVIEW: MrpackIndex = {
+  formatVersion: 1,
+  game: 'minecraft',
+  versionId: '1.0.0',
+  name: '',
+  files: [],
+  dependencies: {},
 };
 
 const FLASH_DURATION_MS = 1000;
@@ -60,10 +90,29 @@ function mergeSkippedProjects(
   return merged;
 }
 
+async function readFileText(file: File): Promise<string> {
+  if (typeof file.text === 'function') {
+    return file.text();
+  }
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      resolve(typeof reader.result === 'string' ? reader.result : '');
+    };
+    reader.onerror = () => {
+      reject(reader.error ?? new Error('Failed to read file.'));
+    };
+    reader.readAsText(file);
+  });
+}
+
 export function App({
   appName = 'modrinth-collection-downloader',
   modrinthClient,
+  fileFetcher,
+  archiveWriter,
   onExportJson,
+  onExportBlob,
 }: AppProps) {
   const [instance, setInstance] = useState<Instance | null>(null);
   const [resolveSkipped, setResolveSkipped] = useState<SkippedProject[]>([]);
@@ -74,6 +123,13 @@ export function App({
   const [resolveError, setResolveError] = useState<string | null>(null);
   const [wasCancelled, setWasCancelled] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportingEnv, setExportingEnv] = useState<EnvironmentId | null>(null);
+  const [zipProgress, setZipProgress] = useState<ZipExportProgress | null>(null);
+  const [zipResult, setZipResult] = useState<ExportEnvironmentZipResult | null>(null);
+  const [platformVersion, setPlatformVersion] = useState('');
 
   const [activeEnvironments, setActiveEnvironments] = useState<ActiveEnvironments>(
     INITIAL_ACTIVE_ENVIRONMENTS,
@@ -87,6 +143,8 @@ export function App({
   instanceRef.current = instance;
   const abortControllerRef = useRef<AbortController | null>(null);
   const versionAbortControllerRef = useRef<AbortController | null>(null);
+  const exportAbortControllerRef = useRef<AbortController | null>(null);
+  const importAbortControllerRef = useRef<AbortController | null>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearFlashTimer = useCallback(() => {
@@ -121,6 +179,10 @@ export function App({
       abortControllerRef.current = null;
       versionAbortControllerRef.current?.abort();
       versionAbortControllerRef.current = null;
+      exportAbortControllerRef.current?.abort();
+      exportAbortControllerRef.current = null;
+      importAbortControllerRef.current?.abort();
+      importAbortControllerRef.current = null;
       clearFlashTimer();
     };
   }, [clearFlashTimer]);
@@ -134,6 +196,16 @@ export function App({
     setWasCancelled(true);
   }, []);
 
+  const handleCancelZipExport = useCallback(() => {
+    if (exportAbortControllerRef.current) {
+      exportAbortControllerRef.current.abort();
+      exportAbortControllerRef.current = null;
+    }
+    setIsExporting(false);
+    setExportingEnv(null);
+    setZipProgress(null);
+  }, []);
+
   const executeLoadCollection = useCallback(
     async (values: TargetFormValues) => {
       if (!modrinthClient) {
@@ -143,6 +215,10 @@ export function App({
       abortControllerRef.current?.abort();
       versionAbortControllerRef.current?.abort();
       versionAbortControllerRef.current = null;
+      exportAbortControllerRef.current?.abort();
+      exportAbortControllerRef.current = null;
+      importAbortControllerRef.current?.abort();
+      importAbortControllerRef.current = null;
       clearFlashTimer();
 
       const controller = new AbortController();
@@ -152,6 +228,12 @@ export function App({
       setInstance(null);
       setResolveSkipped([]);
       setExportError(null);
+      setImportError(null);
+      setIsExporting(false);
+      setExportingEnv(null);
+      setZipProgress(null);
+      setZipResult(null);
+      setPlatformVersion('');
       setActiveEnvironments(INITIAL_ACTIVE_ENVIRONMENTS);
       setFlashingCells(new Set<string>());
       setToastMessage(null);
@@ -239,6 +321,69 @@ export function App({
     setPendingReResolve(null);
     setRevertToken((prev) => prev + 1);
   }, []);
+
+  const handleImportFile = useCallback(
+    async (file: File) => {
+      importAbortControllerRef.current?.abort();
+      const importController = new AbortController();
+      importAbortControllerRef.current = importController;
+
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+      versionAbortControllerRef.current?.abort();
+      versionAbortControllerRef.current = null;
+      exportAbortControllerRef.current?.abort();
+      exportAbortControllerRef.current = null;
+      clearFlashTimer();
+
+      setIsResolving(false);
+      setIsRecomputing(false);
+      setIsExporting(false);
+      setExportingEnv(null);
+      setZipProgress(null);
+      setImportError(null);
+      setExportError(null);
+
+      try {
+        const text = await readFileText(file);
+        if (
+          importAbortControllerRef.current !== importController ||
+          importController.signal.aborted
+        ) {
+          return;
+        }
+        const importedInstance = deserialize(text);
+        importAbortControllerRef.current = null;
+
+        instanceRef.current = importedInstance;
+        setInstance(importedInstance);
+        setResolveSkipped(getSkippedEntries(importedInstance));
+        setActiveEnvironments(INITIAL_ACTIVE_ENVIRONMENTS);
+        setFlashingCells(new Set<string>());
+        setToastMessage(null);
+        setPendingReResolve(null);
+        setZipResult(null);
+        setPlatformVersion('');
+        setResolveError(null);
+        setWasCancelled(false);
+        setProgress(null);
+        setLogs([]);
+        setRevertToken((prev) => prev + 1);
+      } catch (err: unknown) {
+        if (
+          importAbortControllerRef.current !== importController ||
+          importController.signal.aborted ||
+          isAbortError(err)
+        ) {
+          return;
+        }
+        importAbortControllerRef.current = null;
+        const message = err instanceof Error ? err.message : String(err);
+        setImportError(message || 'Failed to import instance.json.');
+      }
+    },
+    [clearFlashTimer],
+  );
 
   const handleToggleEnvironment = useCallback((env: EnvironmentId, active: boolean) => {
     setActiveEnvironments((prev) => ({
@@ -347,7 +492,126 @@ export function App({
     }
   }, [instance, onExportJson]);
 
+  const handleExportEnvironmentZip = useCallback(
+    async (env: EnvironmentId) => {
+      const currentInstance = instanceRef.current;
+      if (!currentInstance || !fileFetcher || !archiveWriter) {
+        return;
+      }
+
+      exportAbortControllerRef.current?.abort();
+      const controller = new AbortController();
+      exportAbortControllerRef.current = controller;
+
+      setExportError(null);
+      setZipResult(null);
+      setIsExporting(true);
+      setExportingEnv(env);
+      setZipProgress({
+        phase: 'downloading',
+        completed: 0,
+        total: toFileTree(currentInstance)[env].files.length,
+        archivePercent: 0,
+      });
+
+      try {
+        const result = await exportEnvironmentZip({
+          instance: currentInstance,
+          env,
+          fileFetcher,
+          archiveWriter,
+          signal: controller.signal,
+          onProgress: (update) => {
+            if (exportAbortControllerRef.current !== controller || controller.signal.aborted) {
+              return;
+            }
+            setZipProgress(update);
+          },
+          onExportBlob,
+        });
+
+        if (exportAbortControllerRef.current !== controller || controller.signal.aborted) {
+          return;
+        }
+
+        exportAbortControllerRef.current = null;
+        setIsExporting(false);
+        setExportingEnv(null);
+        setZipProgress(null);
+        setZipResult(result);
+      } catch (err: unknown) {
+        if (exportAbortControllerRef.current !== controller) {
+          return;
+        }
+        exportAbortControllerRef.current = null;
+        setIsExporting(false);
+        setExportingEnv(null);
+        setZipProgress(null);
+        if (controller.signal.aborted || isAbortError(err)) {
+          return;
+        }
+        const message = err instanceof Error ? err.message : String(err);
+        setExportError(message || `Failed to export ${env}.zip.`);
+      }
+    },
+    [fileFetcher, archiveWriter, onExportBlob],
+  );
+
+  const handleExportMrpack = useCallback(async () => {
+    const currentInstance = instanceRef.current;
+    if (!currentInstance || !archiveWriter) {
+      return;
+    }
+
+    exportAbortControllerRef.current?.abort();
+    const controller = new AbortController();
+    exportAbortControllerRef.current = controller;
+
+    setExportError(null);
+    setIsExporting(true);
+
+    try {
+      await exportMrpackArchive({
+        instance: currentInstance,
+        archiveWriter,
+        platformVersion,
+        signal: controller.signal,
+        onExportBlob,
+      });
+    } catch (err: unknown) {
+      if (
+        exportAbortControllerRef.current !== controller ||
+        controller.signal.aborted ||
+        isAbortError(err)
+      ) {
+        return;
+      }
+      const message = err instanceof Error ? err.message : String(err);
+      setExportError(message || 'Failed to export .mrpack.');
+    } finally {
+      if (exportAbortControllerRef.current === controller) {
+        exportAbortControllerRef.current = null;
+        setIsExporting(false);
+      }
+    }
+  }, [archiveWriter, platformVersion, onExportBlob]);
+
   const tables = useMemo(() => (instance ? toTables(instance) : []), [instance]);
+
+  const fileTrees = useMemo(
+    () => (instance ? toFileTree(instance) : EMPTY_FILE_TREES),
+    [instance],
+  );
+
+  const mrpackPreview = useMemo(
+    () => (instance ? toMrpack(instance, { platformVersion }) : EMPTY_MRPACK_PREVIEW),
+    [instance, platformVersion],
+  );
+
+  const mrpackWarnings = useMemo(
+    () => (instance ? getMrpackWarnings(instance) : []),
+    [instance],
+  );
 
   const activeEnvironmentIds = useMemo<EnvironmentId[]>(
     () => ENVIRONMENTS.filter((env) => activeEnvironments[env]),
@@ -383,13 +647,19 @@ export function App({
           <TargetForm
             modrinthClient={modrinthClient}
             isResolving={isResolving}
-            isDisabled={isRecomputing}
+            isDisabled={isRecomputing || isExporting}
             activeTarget={instance?.meta.target ?? null}
             activeCollectionId={instance?.meta.source.collectionId ?? null}
             revertToken={revertToken}
             onSubmit={handleRequestLoadOrReResolve}
             onTargetChange={handleRequestLoadOrReResolve}
+            onImportFile={handleImportFile}
           />
+          {importError && (
+            <div className="alert alert-error import-error-alert" role="alert">
+              {importError}
+            </div>
+          )}
         </section>
 
         <ResolveProgressPanel
@@ -425,22 +695,36 @@ export function App({
                   </div>
                 </dl>
               </div>
-              <div className="review-actions">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleExportJson}
-                  disabled={isRecomputing}
-                >
-                  Export instance.json
-                </button>
-              </div>
             </section>
 
             <EnvironmentTogglesBar
               activeEnvironments={activeEnvironments}
               onToggleEnvironment={handleToggleEnvironment}
-              disabled={isResolving || isRecomputing}
+              disabled={isResolving || isRecomputing || isExporting}
+            />
+
+            <ExportBar
+              activeEnvironments={activeEnvironments}
+              fileTrees={fileTrees}
+              mrpackPreview={mrpackPreview}
+              mrpackWarnings={mrpackWarnings}
+              platformVersion={platformVersion}
+              onPlatformVersionChange={setPlatformVersion}
+              canExportZip={Boolean(fileFetcher && archiveWriter)}
+              canExportMrpack={Boolean(archiveWriter)}
+              isRecomputing={isRecomputing}
+              isExporting={isExporting}
+              exportingEnv={exportingEnv}
+              zipProgress={zipProgress}
+              zipResult={zipResult}
+              onExportEnvironmentZip={(env) => {
+                void handleExportEnvironmentZip(env);
+              }}
+              onCancelZipExport={handleCancelZipExport}
+              onExportJson={handleExportJson}
+              onExportMrpack={() => {
+                void handleExportMrpack();
+              }}
             />
 
             <AutoSelectToast message={toastMessage} onDismiss={() => setToastMessage(null)} />
@@ -458,7 +742,7 @@ export function App({
               targetPlatform={instance.meta.target.platform}
               activeEnvironments={activeEnvironments}
               flashingCells={flashingCells}
-              isRecomputing={isRecomputing}
+              isRecomputing={isRecomputing || isExporting}
               onToggleEntrySelection={handleToggleEntrySelection}
               onToggleSelectAll={handleToggleSelectAll}
               onChangeEntryVersion={handleChangeEntryVersion}

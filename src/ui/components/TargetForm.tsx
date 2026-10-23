@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import {
   filterReleaseGameVersions,
   formatPlatformDisplayName,
@@ -25,6 +25,7 @@ export interface TargetFormProps {
   revertToken?: number;
   onSubmit: (values: TargetFormValues) => void;
   onTargetChange?: (values: TargetFormValues) => void;
+  onImportFile?: (file: File) => void | Promise<void>;
 }
 
 function filterPlatforms(platforms: readonly PlatformInfo[]): PlatformInfo[] {
@@ -47,6 +48,7 @@ export function TargetForm({
   revertToken = 0,
   onSubmit,
   onTargetChange,
+  onImportFile,
 }: TargetFormProps) {
   const [collectionInput, setCollectionInput] = useState('');
   const [gameVersion, setGameVersion] = useState('');
@@ -59,6 +61,8 @@ export function TargetForm({
   const [tagLoadError, setTagLoadError] = useState<string | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (revertToken > 0 && activeTarget) {
@@ -184,6 +188,15 @@ export function TargetForm({
     });
   };
 
+  const handleFileInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !onImportFile) {
+      return;
+    }
+    void onImportFile(file);
+  };
+
   const tagsReady =
     Boolean(modrinthClient) &&
     !isLoadingTags &&
@@ -191,6 +204,30 @@ export function TargetForm({
     gameVersions.length > 0 &&
     platforms.length > 0;
   const controlsDisabled = isResolving || isDisabled;
+
+  const effectiveGameVersions =
+    gameVersion && !gameVersions.some((gv) => gv.version === gameVersion)
+      ? [
+          {
+            version: gameVersion,
+            versionType: 'release' as const,
+            date: '',
+            major: true,
+          },
+          ...gameVersions,
+        ]
+      : gameVersions;
+
+  const effectivePlatforms =
+    platform && !platforms.some((p) => p.name === platform)
+      ? [
+          {
+            name: platform,
+            supportedProjectTypes: ['mod'],
+          },
+          ...platforms,
+        ]
+      : platforms;
 
   return (
     <form className="target-form" onSubmit={handleSubmit} noValidate>
@@ -245,12 +282,12 @@ export function TargetForm({
             }}
             disabled={!tagsReady || controlsDisabled}
           >
-            {gameVersions.length === 0 ? (
+            {effectiveGameVersions.length === 0 ? (
               <option value="">
                 {isLoadingTags ? 'Loading game versions…' : 'No game versions available'}
               </option>
             ) : (
-              gameVersions.map((gv) => (
+              effectiveGameVersions.map((gv) => (
                 <option key={gv.version} value={gv.version}>
                   {gv.version}
                 </option>
@@ -271,12 +308,12 @@ export function TargetForm({
             }}
             disabled={!tagsReady || controlsDisabled}
           >
-            {platforms.length === 0 ? (
+            {effectivePlatforms.length === 0 ? (
               <option value="">
                 {isLoadingTags ? 'Loading platforms…' : 'No platforms available'}
               </option>
             ) : (
-              platforms.map((p) => (
+              effectivePlatforms.map((p) => (
                 <option key={p.name} value={p.name}>
                   {formatPlatformDisplayName(p.name)}
                 </option>
@@ -304,6 +341,23 @@ export function TargetForm({
       </div>
 
       <div className="form-actions">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json,application/json"
+          aria-label="Import instance.json file"
+          className="sr-only"
+          onChange={handleFileInputChange}
+          disabled={controlsDisabled}
+        />
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={controlsDisabled}
+        >
+          Import instance.json
+        </button>
         <button
           type="submit"
           className="btn btn-primary"
