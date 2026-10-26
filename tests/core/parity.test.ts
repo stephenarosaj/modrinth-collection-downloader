@@ -11,7 +11,7 @@ import { getSkippedEntries, toFileTree, toMrpack, toTables } from '../../src/cor
 import type { GameVersionInfo } from '../../src/ports';
 import { FakeModrinthClient, makeDefaultFileRef } from '../helpers/fake-modrinth-client';
 
-describe('parity (§11) — collection ID and URL parsing', () => {
+describe('parity — collection ID and URL parsing', () => {
   it.each([
     {
       input: 'YV97U1kk',
@@ -70,7 +70,7 @@ describe('parity (§11) — collection ID and URL parsing', () => {
   });
 });
 
-describe('parity (§11) — release-only game version filtering', () => {
+describe('parity — release-only game version filtering', () => {
   it('keeps only release game versions and excludes snapshots, betas, and alphas', () => {
     const versions: GameVersionInfo[] = [
       { version: '1.21.1', versionType: 'release', date: '2024-08-08T00:00:00Z', major: false },
@@ -85,7 +85,7 @@ describe('parity (§11) — release-only game version filtering', () => {
   });
 });
 
-describe('parity (§11) — prefer-stable semantics & platform-agnostic types', () => {
+describe('parity — prefer-stable semantics & platform-agnostic types', () => {
   it('prefers stable release over newer beta when releasePreference="stable", or falls back to beta if no release exists', async () => {
     const client = new FakeModrinthClient();
     client.setCollection('col-stable', ['mod-with-release', 'mod-beta-only']);
@@ -206,7 +206,7 @@ describe('parity (§11) — prefer-stable semantics & platform-agnostic types', 
   });
 });
 
-describe('parity (§11) — refusing modpacks and .mrpack primary files', () => {
+describe('parity — refusing modpacks and .mrpack primary files', () => {
   it('refuses modpack projects and versions whose primary file ends with .mrpack', async () => {
     const client = new FakeModrinthClient();
     client.setCollection('col-mrpack', ['pack-proj', 'sneaky-mrpack-mod', 'valid-mod']);
@@ -269,7 +269,7 @@ describe('parity (§11) — refusing modpacks and .mrpack primary files', () => 
   });
 });
 
-describe('parity (§11) — duplicate avoidance & missing versions/files handling', () => {
+describe('parity — duplicate avoidance & missing versions/files handling', () => {
   it('deduplicates repeated projectIds in the collection and shared dependencies without duplicate API fetches', async () => {
     const client = new FakeModrinthClient();
     client.setCollection('col-dups', ['mod-a', 'mod-b', 'mod-a', 'shared-dep']);

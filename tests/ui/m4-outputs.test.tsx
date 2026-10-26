@@ -13,6 +13,7 @@ import {
 } from '../../src/core';
 import type { FileFetcher, ModrinthClient, RequestOptions } from '../../src/ports';
 import { App } from '../../src/ui/App';
+import { ExportBar } from '../../src/ui/components/ExportBar';
 import { triggerBlobDownload } from '../../src/ui/download';
 import { FakeModrinthClient } from '../helpers/fake-modrinth-client';
 
@@ -294,8 +295,8 @@ function buildM4FakeClient(): FakeModrinthClient {
   return client;
 }
 
-describe('M4 Outputs — client.zip, server.zip, instance.json offline import, and .mrpack export', () => {
-  it('gates client.zip and server.zip exports by environment toggles and produces zip archives matching toFileTree(instance) 100% across all folders and collision suffixes (§7.3.1, §8.1)', async () => {
+describe('Outputs — client.zip, server.zip, instance.json offline import, and .mrpack export', () => {
+  it('gates client.zip and server.zip exports by environment toggles and produces zip archives matching toFileTree(instance) 100% across all folders and collision suffixes', async () => {
     const client = buildM4FakeClient();
     const archiveWriter = createArchiveWriter();
     const fetchedUrls: string[] = [];
@@ -341,7 +342,7 @@ describe('M4 Outputs — client.zip, server.zip, instance.json offline import, a
     const exportClientBtn = screen.getByRole('button', { name: 'Export client.zip' });
     const exportServerBtn = screen.getByRole('button', { name: 'Export server.zip' });
 
-    // Both environment toggles are off initially -> both zip buttons are disabled (§7.3.1)
+    // Both environment toggles are off initially -> both zip buttons are disabled
     expect(exportClientBtn).toBeDisabled();
     expect(exportServerBtn).toBeDisabled();
     expect(exportClientBtn).toHaveTextContent('(7)');
@@ -425,7 +426,7 @@ describe('M4 Outputs — client.zip, server.zip, instance.json offline import, a
     }
   });
 
-  it('reports partial download failures while packaging remaining successful files, handles total failure without creating a zip, and supports cancelling in-flight zip exports (§7.6, §13 M4)', async () => {
+  it('reports partial download failures while packaging remaining successful files, handles total failure without creating a zip, and supports cancelling in-flight zip exports', async () => {
     const client = buildM4FakeClient();
     const archiveWriter = createArchiveWriter();
 
@@ -587,7 +588,7 @@ describe('M4 Outputs — client.zip, server.zip, instance.json offline import, a
     expect(cancelBlobs).toHaveLength(0);
   });
 
-  it('restores full review state from instance.json offline with zero ModrinthClient calls, round-trips losslessly on re-export, and rejects invalid/future schemas with role="alert" (§8.2, §13 M4)', async () => {
+  it('restores full review state from instance.json offline with zero ModrinthClient calls, round-trips losslessly on re-export, and rejects invalid/future schemas with role="alert"', async () => {
     const client = buildM4FakeClient();
     const exportedJsonPayloads: Array<{ filename: string; json: string }> = [];
 
@@ -737,7 +738,7 @@ describe('M4 Outputs — client.zip, server.zip, instance.json offline import, a
     expect(zeroNetworkClient.getVersionsByIds).not.toHaveBeenCalled();
   });
 
-  it('exports .mrpack with modrinth.index.json without fetching binaries, supports optional platformVersion, warns when plugins are excluded, and emits separate entries when client/server versions differ (§8.3, §13 M4)', async () => {
+  it('exports .mrpack with modrinth.index.json without fetching binaries, supports optional platformVersion, warns when plugins are excluded, and emits separate entries when client/server versions differ', async () => {
     const client = buildM4FakeClient();
     const archiveWriter = createArchiveWriter();
     const fileFetcher: FileFetcher = {
@@ -784,7 +785,7 @@ describe('M4 Outputs — client.zip, server.zip, instance.json offline import, a
     );
 
     // 2. Override Lithium version on Client to 0.11.1 while keeping Server on 0.11.2
-    //    so client and server choose different versions of the same project (§8.3)
+    //    so client and server choose different versions of the same project
     fireEvent.click(screen.getByLabelText('Client environment'));
     fireEvent.change(screen.getByLabelText('Lithium Client version'), {
       target: { value: 'v-lithium-old' },
@@ -956,5 +957,56 @@ describe('M4 Outputs — client.zip, server.zip, instance.json offline import, a
       });
       clickSpy.mockRestore();
     }
+  });
+
+  it('shows a schema version toast popup when ExportBar has multiple supportedSchemaVersions', () => {
+    const onExportJson = vi.fn();
+    render(
+      <ExportBar
+        activeEnvironments={{ client: true, server: false }}
+        fileTrees={{
+          client: { environment: 'client', files: [] },
+          server: { environment: 'server', files: [] },
+        }}
+        mrpackPreview={{
+          formatVersion: 1,
+          game: 'minecraft',
+          versionId: '1.0.0',
+          name: 'Test',
+          files: [],
+          dependencies: { minecraft: '1.20.1' },
+        }}
+        mrpackWarnings={[]}
+        platformVersion=""
+        onPlatformVersionChange={() => {}}
+        canExportZip={false}
+        canExportMrpack={false}
+        isRecomputing={false}
+        isExporting={false}
+        exportingEnv={null}
+        zipProgress={null}
+        zipResult={null}
+        supportedSchemaVersions={[1, 2]}
+        onExportEnvironmentZip={() => {}}
+        onCancelZipExport={() => {}}
+        onExportJson={onExportJson}
+        onExportMrpack={() => {}}
+      />,
+    );
+
+    const exportJsonBtn = screen.getByRole('button', { name: 'Export instance.json' });
+    fireEvent.click(exportJsonBtn);
+    expect(onExportJson).not.toHaveBeenCalled();
+
+    const toast = screen.getByTestId('schema-version-toast');
+    expect(toast).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByTestId('schema-version-toast')).not.toBeInTheDocument();
+
+    fireEvent.click(exportJsonBtn);
+    fireEvent.click(screen.getByRole('button', { name: 'Schema v2' }));
+    expect(onExportJson).toHaveBeenCalledWith(2);
+    expect(screen.queryByTestId('schema-version-toast')).not.toBeInTheDocument();
   });
 });

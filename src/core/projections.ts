@@ -1,4 +1,6 @@
-// Pure projections of Instance into UI tables, archive file trees, and .mrpack index (§6.1, §7.5, §8.1, §8.3).
+/**
+ * Pure projections of Instance into UI tables, archive file trees, and .mrpack index.
+ */
 
 import {
   ENVIRONMENTS,
@@ -11,6 +13,7 @@ import {
   type FileTree,
   type FileTreeEntry,
   type Instance,
+  type LinkedProjectRef,
   type MrpackEnvSupport,
   type MrpackFile,
   type MrpackIndex,
@@ -20,14 +23,17 @@ import {
   type TableModel,
   type TableRow,
   type VersionRef,
+  extractOptionalDependencyIds,
   extractRequiredDependencyIds,
+  getKnownProjectTitle,
   isExportableProjectType,
   isPlatformAgnostic,
+  registerKnownProjectTitles,
 } from './model';
 import { formatEntryFilename, resolveUniqueFilename } from './naming';
 
 /**
- * Mapping from target platform identifier (lower-case) to Modrinth `.mrpack` dependency key (§8.3).
+ * Mapping from target platform identifier (lower-case) to Modrinth `.mrpack` dependency key.
  */
 const MRPACK_PLATFORM_DEPENDENCY_KEYS: Readonly<Record<string, string>> = {
   fabric: 'fabric-loader',
@@ -48,7 +54,7 @@ export function mapPlatformToMrpackDependencyKey(platform: string): string | nul
 }
 
 /**
- * Maps an environment's `Support` and selection state into `.mrpack` `env` support (§8.3):
+ * Maps an environment's `Support` and selection state into `.mrpack` `env` support:
  * - If selected: `'required'` -> `'required'`, `'optional'` / `'unknown'` -> `'optional'`.
  * - If not selected (or `'unsupported'`): `'unsupported'`.
  */
@@ -63,7 +69,7 @@ export function toMrpackEnvSupport(support: Support, selected: boolean): MrpackE
 }
 
 /**
- * Computes the set of dependency project IDs that should be visible in the review tables (§7.4):
+ * Computes the set of dependency project IDs that should be visible in the review tables:
  * "a dependency entry is always listed if any collection entry requires it in any environment
  * (regardless of selection)."
  */
@@ -139,14 +145,14 @@ function computeVisibleDependencyIds(
 }
 
 /**
- * Resolves the human-readable project titles of all entries requiring `entry` in each environment (§7.5).
+ * Resolves the structured references (`{ id, title }`) of all entries requiring `entry` in each environment.
  */
-function resolveRequiredByTitles(
+function resolveRequiredByRefs(
   entry: Entry,
   instance: Instance,
   entryById: Map<string, Entry>,
-): Record<EnvironmentId, string[]> {
-  const result: Record<EnvironmentId, string[]> = {
+): Record<EnvironmentId, LinkedProjectRef[]> {
+  const result: Record<EnvironmentId, LinkedProjectRef[]> = {
     client: [],
     server: [],
   };
@@ -164,14 +170,117 @@ function resolveRequiredByTitles(
       }
     }
 
-    result[env] = requiringIds.map((reqId) => entryById.get(reqId)?.project.title ?? reqId);
+    result[env] = requiringIds.map((reqId) => ({
+      id: reqId,
+      title: entryById.get(reqId)?.project.title ?? getKnownProjectTitle(reqId) ?? reqId,
+    }));
   }
 
   return result;
 }
 
 /**
- * Projects an `Instance` into per-project-type `TableModel`s for the review UI (§6.1, §7.4, §7.5).
+ * Resolves the structured references (`{ id, title }`) of all direct required dependencies of `entry` in each environment.
+ */
+function resolveRequiredDependencies(
+  entry: Entry,
+  instance: Instance,
+  entryById: Map<string, Entry>,
+): Record<EnvironmentId, LinkedProjectRef[]> {
+  const result: Record<EnvironmentId, LinkedProjectRef[]> = {
+    client: [],
+    server: [],
+  };
+
+  for (const env of ENVIRONMENTS) {
+    const envState = entry.environments[env];
+    const depIds = new Set<string>(envState.dependencies);
+
+    for (const depId of extractRequiredDependencyIds(envState.version)) {
+      depIds.add(depId);
+    }
+
+    for (const other of instance.entries) {
+      if (
+        other.project.id !== entry.project.id &&
+        other.environments[env].requiredBy.includes(entry.project.id)
+      ) {
+        depIds.add(other.project.id);
+      }
+    }
+
+    result[env] = [...depIds].map((depId) => ({
+      id: depId,
+      title: entryById.get(depId)?.project.title ?? getKnownProjectTitle(depId) ?? depId,
+    }));
+  }
+
+  return result;
+}
+
+/**
+ * Resolves the structured references (`{ id, title }`) of all direct optional dependencies of `entry` in each environment.
+ */
+function resolveOptionalDependencies(
+  entry: Entry,
+  entryById: Map<string, Entry>,
+): Record<EnvironmentId, LinkedProjectRef[]> {
+  const result: Record<EnvironmentId, LinkedProjectRef[]> = {
+    client: [],
+    server: [],
+  };
+
+  for (const env of ENVIRONMENTS) {
+    const envState = entry.environments[env];
+    const optIds = extractOptionalDependencyIds(envState.version);
+
+    result[env] = optIds.map((optId) => ({
+      id: optId,
+      title: entryById.get(optId)?.project.title ?? getKnownProjectTitle(optId) ?? optId,
+    }));
+  }
+
+  return result;
+}
+
+/**
+ * Resolves the structured references (`{ id, title }`) of all entries listing `entry` as an optional dependency in each environment.
+ */
+function resolveOptionalByRefs(
+  entry: Entry,
+  instance: Instance,
+): Record<EnvironmentId, LinkedProjectRef[]> {
+  const result: Record<EnvironmentId, LinkedProjectRef[]> = {
+    client: [],
+    server: [],
+  };
+
+  for (const env of ENVIRONMENTS) {
+    const refs: LinkedProjectRef[] = [];
+    const seen = new Set<string>();
+
+    for (const other of instance.entries) {
+      if (other.project.id === entry.project.id || seen.has(other.project.id)) {
+        continue;
+      }
+      const optIds = extractOptionalDependencyIds(other.environments[env].version);
+      if (optIds.includes(entry.project.id)) {
+        seen.add(other.project.id);
+        refs.push({
+          id: other.project.id,
+          title: other.project.title,
+        });
+      }
+    }
+
+    result[env] = refs;
+  }
+
+  return result;
+}
+
+/**
+ * Projects an `Instance` into per-project-type `TableModel`s for the review UI.
  * - Ordered by `PROJECT_TYPE_ORDER`: `mod`, `plugin`, `datapack`, `resourcepack`, `shader`.
  * - `rows` = collection entries (`origin === 'collection'`).
  * - `dependencies` = dependency entries (`origin === 'dependency'`) required by any collection entry
@@ -183,6 +292,7 @@ export function toTables(instance: Instance): TableModel[] {
   for (const entry of instance.entries) {
     entryById.set(entry.project.id, entry);
   }
+  registerKnownProjectTitles(instance.entries.map((e) => e.project));
 
   const visibleDepIds = computeVisibleDependencyIds(instance, entryById);
   const tables: TableModel[] = [];
@@ -200,13 +310,25 @@ export function toTables(instance: Instance): TableModel[] {
         continue;
       }
 
+      const requiredByRefs = resolveRequiredByRefs(entry, instance, entryById);
+      const requiredDependencies = resolveRequiredDependencies(entry, instance, entryById);
+      const optionalByRefs = resolveOptionalByRefs(entry, instance);
+      const optionalDependencies = resolveOptionalDependencies(entry, entryById);
+
       const row: TableRow = {
         entry,
         project: entry.project,
         origin: entry.origin,
         platform: isPlatformAgnostic(entry.project.type) ? null : instance.meta.target.platform,
         environments: entry.environments,
-        requiredByTitles: resolveRequiredByTitles(entry, instance, entryById),
+        requiredByTitles: {
+          client: requiredByRefs.client.map((ref) => ref.title),
+          server: requiredByRefs.server.map((ref) => ref.title),
+        },
+        requiredByRefs,
+        requiredDependencies,
+        optionalByRefs,
+        optionalDependencies,
       };
 
       if (entry.origin === 'collection') {
@@ -230,7 +352,7 @@ export function toTables(instance: Instance): TableModel[] {
 
 /**
  * Returns any non-exportable entries (such as `modpack` projects or entries with `.mrpack` primary files)
- * present in `instance.entries` for display in the Skipped section (§7.5, §11).
+ * present in `instance.entries` for display in the Skipped section.
  */
 export function getSkippedEntries(instance: Instance): SkippedProject[] {
   const skipped: SkippedProject[] = [];
@@ -271,7 +393,7 @@ export function getSkippedEntries(instance: Instance): SkippedProject[] {
 }
 
 /**
- * Projects an `Instance` into deterministic `client` and `server` archive file trees (§6.1, §8.1).
+ * Projects an `Instance` into deterministic `client` and `server` archive file trees.
  * Only exportable entries selected (`selection.on === true`) with a non-null `version` in that
  * environment are included. Collisions within the same folder append `-2`, `-3`, etc.
  */
@@ -290,7 +412,7 @@ export function toFileTree(instance: Instance): { client: FileTree; server: File
         continue;
       }
 
-      // Refuse .mrpack primary files (§11).
+      // Refuse .mrpack primary files.
       if (envState.version.file.filename.toLowerCase().endsWith('.mrpack')) {
         continue;
       }
@@ -329,7 +451,7 @@ export function toFileTree(instance: Instance): { client: FileTree; server: File
 }
 
 /**
- * Returns warnings applicable when exporting `instance` to `.mrpack` (§8.3).
+ * Returns warnings applicable when exporting `instance` to `.mrpack`.
  * Specifically warns when one or more selected `plugin` entries are excluded.
  */
 export function getMrpackWarnings(instance: Instance): string[] {
@@ -360,7 +482,7 @@ export function getMrpackWarnings(instance: Instance): string[] {
 }
 
 /**
- * Projects an `Instance` into a Modrinth `modrinth.index.json` (`MrpackIndex`) structure (§6.1, §8.3).
+ * Projects an `Instance` into a Modrinth `modrinth.index.json` (`MrpackIndex`) structure.
  * - Excludes `plugin` and `modpack` project types.
  * - Maps selected environment support (`required` -> `required`, `optional`/`unknown` -> `optional`,
  *   unselected -> `unsupported`).
@@ -401,7 +523,7 @@ export function toMrpack(instance: Instance, opts?: MrpackOptions): MrpackIndex 
   };
 
   for (const entry of instance.entries) {
-    // Exclude modpacks and plugins (§8.3).
+    // Exclude modpacks and plugins.
     if (!isExportableProjectType(entry.project.type) || entry.project.type === 'plugin') {
       continue;
     }

@@ -276,7 +276,7 @@ function createSampleInstance(): Instance {
   };
 }
 
-describe('serialize, deserialize, and JSON Schema validation (§6.1, §8.2, §10)', () => {
+describe('serialize, deserialize, and JSON Schema validation', () => {
   it('round-trips a valid Instance through serialize and deserialize losslessly', () => {
     const original = createSampleInstance();
     const json = serialize(original);
@@ -309,7 +309,7 @@ describe('serialize, deserialize, and JSON Schema validation (§6.1, §8.2, §10
     expect(serialize(b)).toBe(serialize(a));
   });
 
-  it('throws a clear error when deserializing an unknown future schemaVersion (§8.2)', () => {
+  it('throws a clear error when deserializing an unknown future schemaVersion', () => {
     const raw = JSON.parse(serialize(createSampleInstance())) as Record<string, unknown>;
     raw.schemaVersion = 2;
 

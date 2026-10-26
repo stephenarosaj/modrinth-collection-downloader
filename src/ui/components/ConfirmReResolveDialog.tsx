@@ -1,11 +1,17 @@
 import { useEffect, useRef } from 'react';
 
+/** Props for {@link ConfirmReResolveDialog}. */
 export interface ConfirmReResolveDialogProps {
   open: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
 
+/**
+ * Accessible modal confirmation dialog prompted when target parameters change while
+ * the user has customized selections differing from defaults. Traps Escape and initially
+ * focuses the Cancel action.
+ */
 export function ConfirmReResolveDialog({
   open,
   onConfirm,

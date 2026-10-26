@@ -1,4 +1,6 @@
-// Pure domain logic, types, resolver, reducers, status, and projections (M1).
+/**
+ * Pure domain logic, types, resolver, reducers, status, naming, projections, and serialization.
+ */
 export * from './model';
 export * from './collection';
 export * from './resolver';

@@ -137,7 +137,7 @@ function getEnv(instance: Instance, projectId: string, env: EnvironmentId): Envi
   return entry.environments[env];
 }
 
-describe('Selectability & computeInitialSelection (§7.3)', () => {
+describe('Selectability & computeInitialSelection', () => {
   const selectabilityCases: {
     name: string;
     support: Support;
@@ -322,7 +322,7 @@ describe('Selectability & computeInitialSelection (§7.3)', () => {
   });
 });
 
-describe('select / deselect reducer rules (§7.3)', () => {
+describe('select / deselect reducer rules', () => {
   it('selects an entry with source:user and auto-selects transitive selectable dependencies while respecting off/user', () => {
     const instance = makeInstance([
       makeEntry('mod-a', {
@@ -521,7 +521,7 @@ describe('select / deselect reducer rules (§7.3)', () => {
   });
 });
 
-describe('Header select-all, deselect-all, and getHeaderTriState (§7.3)', () => {
+describe('Header select-all, deselect-all, and getHeaderTriState', () => {
   it('computes tri-state and applies select-all / deselect-all to collection rows of target projectType only', () => {
     const initial = computeInitialSelection(
       makeInstance([
@@ -604,7 +604,7 @@ describe('Header select-all, deselect-all, and getHeaderTriState (§7.3)', () =>
   });
 });
 
-describe('set-version, reset-selection, and hasSelectionChangedFromDefault (§7.2, §7.3)', () => {
+describe('set-version, reset-selection, and hasSelectionChangedFromDefault', () => {
   it('updates version, sets resolution:user, recomputes dependencies/requiredBy, and reconciles auto-selections', () => {
     const v1 = makeVersion('v1', [{ projectId: 'dep-old', type: 'required' }]);
     const v2 = makeVersion('v2', [

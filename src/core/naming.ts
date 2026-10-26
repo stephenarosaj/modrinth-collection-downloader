@@ -1,4 +1,6 @@
-// Deterministic output filename formatting and collision handling (§8.1).
+/**
+ * Deterministic output filename formatting and collision handling.
+ */
 
 import {
   type Entry,
@@ -9,7 +11,7 @@ import {
 } from './model';
 
 /**
- * Canonical display names for known Modrinth platforms (§8.1).
+ * Canonical display names for known Modrinth platforms.
  * Unknown platforms fall back to title-case.
  */
 const PLATFORM_DISPLAY_NAMES: Readonly<Record<string, string>> = {
@@ -40,7 +42,7 @@ const PLATFORM_DISPLAY_NAMES: Readonly<Record<string, string>> = {
 };
 
 /**
- * Formats a project title into PascalCase with only ASCII alphanumeric characters (§8.1):
+ * Formats a project title into PascalCase with only ASCII alphanumeric characters:
  * - Split on whitespace
  * - Each word capitalized (first character upper-cased, rest unchanged)
  * - All non `[A-Za-z0-9]` characters removed
@@ -78,7 +80,7 @@ export function formatTitle(title: string, fallback?: string): string {
 }
 
 /**
- * Formats a platform identifier into its display name (§8.1).
+ * Formats a platform identifier into its display name.
  * Known platforms use their canonical casing (`NeoForge`, `BungeeCord`, etc.);
  * unknown platforms fall back to title-case with non-alphanumeric separators removed.
  */
@@ -108,14 +110,14 @@ export function formatPlatformDisplayName(platform: string): string {
 }
 
 /**
- * Sanitizes a version number by replacing `\ / : * ? " < > |` and whitespace with `-` (§8.1).
+ * Sanitizes a version number by replacing `\ / : * ? " < > |` and whitespace with `-`.
  */
 export function sanitizeVersionNumber(versionNumber: string): string {
   return versionNumber.trim().replace(/[\\/:*?"<>|\s]/g, '-');
 }
 
 /**
- * Extracts the file extension (without leading dot) from an original filename (§8.1).
+ * Extracts the file extension (without leading dot) from an original filename.
  * Returns an empty string if no extension is present.
  */
 export function extractExtension(filename: string): string {
@@ -127,6 +129,7 @@ export function extractExtension(filename: string): string {
   return trimmed.slice(lastDot + 1);
 }
 
+/** Input parameters for formatting a deterministic output filename. */
 export interface FormatFilenameInput {
   title: string;
   slug?: string;
@@ -139,7 +142,7 @@ export interface FormatFilenameInput {
 }
 
 /**
- * Formats a deterministic output filename according to §8.1:
+ * Formats a deterministic output filename:
  * - Platform-specific (`mod`, `plugin`): `{Title}-{Platform}-{GameVersion}-{VersionNumber}.{ext}`
  * - Platform-agnostic (`resourcepack`, `shader`, `datapack`): `{Title}-{GameVersion}-{VersionNumber}.{ext}`
  */
@@ -185,7 +188,7 @@ export function formatEntryFilename(
 }
 
 /**
- * Resolves filename collisions within a single output folder (§8.1).
+ * Resolves filename collisions within a single output folder.
  * If `baseFilename` is already in `usedFilenames`, appends `-2`, `-3`, ... before the extension.
  * Mutates `usedFilenames` by adding the returned unique filename.
  */

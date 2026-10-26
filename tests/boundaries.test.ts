@@ -12,7 +12,7 @@ async function lintSnippet(code: string, relativeFilePath: string) {
   return results[0]?.messages ?? [];
 }
 
-describe('Architectural boundary rules (§5.1)', () => {
+describe('Architectural boundary rules', () => {
   it('allows valid imports across layers', async () => {
     const coreMessages = await lintSnippet(
       "import type { Archive } from '../ports';\nexport type CoreArchive = Archive;\n",

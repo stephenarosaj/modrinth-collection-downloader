@@ -103,7 +103,7 @@ function createFixtureFetchMock() {
   });
 }
 
-describe('M2 E2E Acceptance — HttpModrinthClient + resolveCollection + serialize/deserialize', () => {
+describe('E2E Acceptance — HttpModrinthClient + resolveCollection + serialize/deserialize', () => {
   it('resolves recorded collection YV97U1kk end-to-end into an Instance, validates schema, and round-trips JSON', async () => {
     const fetchMock = createFixtureFetchMock();
     const client = createModrinthClient({ fetchImpl: fetchMock });

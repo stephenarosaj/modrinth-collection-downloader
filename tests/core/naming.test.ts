@@ -10,7 +10,7 @@ import {
 } from '../../src/core/naming';
 import type { ProjectType } from '../../src/core/model';
 
-describe('naming (§8.1)', () => {
+describe('naming', () => {
   describe('formatTitle', () => {
     it.each([
       { title: 'Better Third Person', fallback: undefined, expected: 'BetterThirdPerson' },
@@ -98,7 +98,7 @@ describe('naming (§8.1)', () => {
       expected: string;
     }>([
       {
-        description: 'canonical §8.1 mod example',
+        description: 'canonical mod example',
         title: 'Better Third Person',
         projectType: 'mod',
         platform: 'forge',
@@ -128,7 +128,7 @@ describe('naming (§8.1)', () => {
         expected: 'WorldEdit-Paper-1.20.4-7.3.0.jar',
       },
       {
-        description: 'resourcepack omits platform (§8.1)',
+        description: 'resourcepack omits platform',
         title: 'Fresh Animations',
         projectType: 'resourcepack',
         platform: 'fabric',
@@ -138,7 +138,7 @@ describe('naming (§8.1)', () => {
         expected: 'FreshAnimations-1.20.1-1.9.2.zip',
       },
       {
-        description: 'shader omits platform (§8.1)',
+        description: 'shader omits platform',
         title: 'Complementary Reimagined',
         projectType: 'shader',
         platform: 'iris',

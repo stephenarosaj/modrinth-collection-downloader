@@ -1,9 +1,14 @@
 import type { SkippedProject } from '../../core';
 
+/** Props for {@link SkippedSection}. */
 export interface SkippedSectionProps {
   skipped: readonly SkippedProject[];
 }
 
+/**
+ * Renders a list of collection projects that cannot be exported (such as modpacks
+ * or projects where version lookups failed) alongside clear user explanations.
+ */
 export function SkippedSection({ skipped }: SkippedSectionProps) {
   if (skipped.length === 0) {
     return null;

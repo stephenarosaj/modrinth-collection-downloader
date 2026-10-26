@@ -116,7 +116,7 @@ describe('resolver — usable version filtering & timestamp ordering', () => {
   });
 });
 
-describe('resolver — resolveVersionForEnvironment (§7.1 table-driven)', () => {
+describe('resolver — resolveVersionForEnvironment (table-driven)', () => {
   interface ResolutionCase {
     name: string;
     projectType: ProjectType;
@@ -330,7 +330,7 @@ describe('resolver — resolveVersionForEnvironment (§7.1 table-driven)', () =>
   });
 });
 
-describe('resolver — resolveCollection & dependency closure (§7.2, §7.3)', () => {
+describe('resolver — resolveCollection & dependency closure', () => {
   it('computes transitive required dependency closure and ignores optional/incompatible/embedded', async () => {
     const client = new FakeModrinthClient();
     client.setCollection('col-1', ['mod-a'], 'My Collection');
@@ -456,7 +456,7 @@ describe('resolver — resolveCollection & dependency closure (§7.2, §7.3)', (
     expect(depD.environments.client.requiredBy).toEqual(['dep-b', 'dep-c']);
   });
 
-  it('preserves origin: "collection" when a collection project is also a required dependency (§6)', async () => {
+  it('preserves origin: "collection" when a collection project is also a required dependency', async () => {
     const client = new FakeModrinthClient();
     client.setCollection('col-both', ['mod-a', 'fabric-api']);
 

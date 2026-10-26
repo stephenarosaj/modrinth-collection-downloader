@@ -94,7 +94,7 @@ function makeInstance(entries: Entry[], platform = 'fabric', gameVersion = '1.20
   };
 }
 
-describe('projections (§6.1, §7.4, §7.5, §8.1, §8.3)', () => {
+describe('projections', () => {
   describe('toTables & getSkippedEntries', () => {
     it('groups entries by PROJECT_TYPE_ORDER, separates collection rows and dependency footers, and sets platform', () => {
       const shaderEntry = makeEntry(
@@ -152,7 +152,7 @@ describe('projections (§6.1, §7.4, §7.5, §8.1, §8.3)', () => {
       expect(modTable.rows[0]!.project.id).toBe('sodium');
       expect(modTable.rows[0]!.platform).toBe('fabric');
 
-      // Dependency visibility rule (§7.4): fabric-api is required by sodium in client (even if deselected),
+      // Dependency visibility rule: fabric-api is required by sodium in client (even if deselected),
       // while orphan-lib is not required by any collection entry in any environment.
       expect(modTable.dependencies).toHaveLength(1);
       expect(modTable.dependencies[0]!.project.id).toBe('fabric-api');
@@ -171,7 +171,7 @@ describe('projections (§6.1, §7.4, §7.5, §8.1, §8.3)', () => {
       expect(skipped[0]!.id).toBe('some-pack');
     });
 
-    it('keeps dependency entries visible even when all requiring collection entries are deselected (§7.4)', () => {
+    it('keeps dependency entries visible even when all requiring collection entries are deselected', () => {
       const modA = makeEntry(
         'mod-a',
         'Mod A',
@@ -318,7 +318,7 @@ describe('projections (§6.1, §7.4, §7.5, §8.1, §8.3)', () => {
     });
   });
 
-  describe('toFileTree (§8.1)', () => {
+  describe('toFileTree', () => {
     it('builds independent client and server file trees with correct folders, names, and collision suffixes', () => {
       const mod1 = makeEntry(
         'better-third-person',
@@ -448,7 +448,7 @@ describe('projections (§6.1, §7.4, §7.5, §8.1, §8.3)', () => {
     });
   });
 
-  describe('toMrpack & getMrpackWarnings (§8.3)', () => {
+  describe('toMrpack & getMrpackWarnings', () => {
     it.each<{
       support: Support;
       selected: boolean;
@@ -601,7 +601,7 @@ describe('projections (§6.1, §7.4, §7.5, §8.1, §8.3)', () => {
       expect(warnings[0]).toContain('LuckPerms');
     });
 
-    it('omits platform dependency key when platformVersion is blank or omitted (§8.3)', () => {
+    it('omits platform dependency key when platformVersion is blank or omitted', () => {
       const instance = makeInstance([], 'quilt', '1.20.1');
       expect(toMrpack(instance).dependencies).toEqual({ minecraft: '1.20.1' });
       expect(toMrpack(instance, { platformVersion: '   ' }).dependencies).toEqual({

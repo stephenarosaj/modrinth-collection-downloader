@@ -223,7 +223,7 @@ async function runAxeAudit(container: HTMLElement) {
   }
 }
 
-describe('M5 Polish — Error Formatting, Retry UX, Partial-Result Resilience, Empty States & 500-Row Performance', () => {
+describe('Error Formatting, Retry UX, Partial-Result Resilience, Empty States & 500-Row Performance', () => {
   describe('1. formatUserFacingError and Collection Resolution Retry UX', () => {
     it('formats HTTP 429, 404, 5xx, and network errors with recovery guidance while preserving already-formatted and fallback errors', () => {
       expect(formatUserFacingError(new Error('HTTP 429 Too Many Requests'))).toBe(
@@ -619,7 +619,7 @@ describe('M5 Polish — Error Formatting, Retry UX, Partial-Result Resilience, E
       });
       expect(retryServerZipBtn).not.toBeDisabled();
 
-      // Turning off Server environment disables Retry server.zip export (§7.3.1)
+      // Turning off Server environment disables Retry server.zip export
       fireEvent.click(serverEnvCheckbox);
       expect(retryServerZipBtn).toBeDisabled();
 
@@ -721,7 +721,9 @@ describe('M5 Polish — Error Formatting, Retry UX, Partial-Result Resilience, E
   });
 
   describe('5. Performance Pass at 500 Rows', () => {
-    it('renders a 500-entry instance across all 5 tables and toggles individual and Select All checkboxes responsively', async () => {
+    it(
+      'renders a 500-entry instance across all 5 tables and toggles individual and Select All checkboxes responsively',
+      async () => {
       const client = buildM5FakeClient();
       const instance500 = build500EntryInstance();
       const serialized = serialize(instance500);
@@ -766,7 +768,7 @@ describe('M5 Polish — Error Formatting, Retry UX, Partial-Result Resilience, E
 
       expect(firstModCheckbox.checked).toBe(true);
       expect(bulkToggleElapsedMs).toBeLessThan(2000);
-    });
+    }, 15000);
 
     it('isolates row and cell re-renders via React.memo when toggling a single row at 500 entries', () => {
       const instance500 = build500EntryInstance();

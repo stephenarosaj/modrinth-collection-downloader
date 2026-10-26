@@ -1,4 +1,6 @@
-// Pure version resolution, dependency closure, initial selection, and version-override recompute (§7.1, §7.2, §7.3, §11).
+/**
+ * Pure version resolution, dependency closure, initial selection, and version-override recompute.
+ */
 
 import type {
   Change,
@@ -22,17 +24,21 @@ import {
   ENVIRONMENTS,
   MODPACK_SKIPPED_REASON,
   PROJECT_TYPES,
+  extractOptionalDependencyIds,
   extractRequiredDependencyIds,
+  getKnownProjectTitle,
   isExportableProjectType,
   isPlatformAgnostic,
   isSelectable,
   isUnverifiedPlatformCandidate,
+  registerKnownProjectTitles,
 } from './model';
 import type { ModrinthClient, ProjectInfo, VersionInfo } from '../ports';
 import { parseCollectionInput } from './collection';
 
 export { extractRequiredDependencyIds } from './model';
 
+/** Parameters for resolving a single project version in an environment. */
 export interface ResolveVersionInput {
   projectType: ProjectType | string;
   support: Support;
@@ -42,6 +48,7 @@ export interface ResolveVersionInput {
   pinnedVersions?: readonly (VersionInfo | VersionRef)[];
 }
 
+/** Output of version resolution for a single environment lane. */
 export interface ResolvedEnvironmentVersion {
   candidates: VersionRef[];
   version: VersionRef | null;
@@ -49,6 +56,7 @@ export interface ResolvedEnvironmentVersion {
   pinConflict: boolean;
 }
 
+/** Progress update reporting current resolution phase and counts. */
 export interface ResolveProgress {
   phase: 'collection' | 'projects' | 'versions' | 'dependencies' | 'complete';
   loaded: number;
@@ -56,6 +64,7 @@ export interface ResolveProgress {
   message?: string;
 }
 
+/** Options for resolving an entire collection into an Instance. */
 export interface ResolveCollectionOptions {
   collectionInput: string;
   gameVersion: string;
@@ -66,11 +75,13 @@ export interface ResolveCollectionOptions {
   onProgress?: (progress: ResolveProgress) => void;
 }
 
+/** Result of collection resolution containing the instance and skipped projects. */
 export interface ResolveCollectionResult {
   instance: Instance;
   skipped: SkippedProject[];
 }
 
+/** Options for synchronously recomputing an environment's dependency closure. */
 export interface RecomputeClosureOptions {
   projectId: string;
   env: EnvironmentId;
@@ -79,6 +90,7 @@ export interface RecomputeClosureOptions {
   extraVersions?: readonly VersionInfo[];
 }
 
+/** Options for asynchronously overriding an entry version and fetching missing dependencies. */
 export interface ChangeEntryVersionOptions {
   projectId: string;
   env: EnvironmentId;
@@ -110,7 +122,7 @@ function pickPrimaryFile(version: VersionInfo | VersionRef): FileRef | null {
 /**
  * Converts a `VersionInfo` or `VersionRef` into a validated `VersionRef`,
  * returning `null` if the version has no valid primary file or if its primary
- * file is a `.mrpack` archive (§11).
+ * file is a `.mrpack` archive.
  */
 export function toUsableVersionRef(version: VersionInfo | VersionRef): VersionRef | null {
   const primary = pickPrimaryFile(version);
@@ -172,7 +184,7 @@ export function filterUsableVersions(
 
 /**
  * Compares two versions by `publishedAt` descending (newest first).
- * Never compares version-number strings (§7.1). Uses `id` as a deterministic tie-breaker.
+ * Never compares version-number strings. Uses `id` as a deterministic tie-breaker.
  */
 export function comparePublishedAtDesc(
   a: Pick<VersionRef, 'id' | 'publishedAt'>,
@@ -190,7 +202,7 @@ export function comparePublishedAtDesc(
 }
 
 /**
- * Orders compatible versions according to `releasePreference` (§7.1):
+ * Orders compatible versions according to `releasePreference`:
  * - `'stable'`: all `'release'` versions (newest first), then `'beta'`/`'alpha'` versions (newest first).
  * - `'newest'`: all versions ordered by `publishedAt` descending regardless of `versionType`.
  */
@@ -231,7 +243,7 @@ function isAbortError(err: unknown, signal?: AbortSignal): boolean {
 }
 
 /**
- * Resolves a single project's version and candidate list for one environment (§7.1).
+ * Resolves a single project's version and candidate list for one environment.
  *
  * Order of rules:
  * 1. Pinned (dependencies only): compatible pinned version; if multiple distinct pins exist,
@@ -329,7 +341,7 @@ export function resolveVersionForEnvironment(
 }
 
 /**
- * Applies the initial selection rules (§7.3) across both environments:
+ * Applies the initial selection rules across both environments:
  * - Every collection entry is selected (`on: true, source: 'user'`) where selectable.
  * - Every dependency entry is selected (`on: true, source: 'auto'`) where selectable
  *   and transitively required by ≥1 selected entry's chosen version in that environment.
@@ -725,7 +737,7 @@ function collectEntryVersionsForEnv(entry: Entry, env: EnvironmentId): VersionIn
 
 /**
  * Resolves a Modrinth collection into a complete `Instance` and list of `SkippedProject`s
- * against the `ModrinthClient` port (§7.1, §7.2, §7.3, §11).
+ * against the `ModrinthClient` port.
  */
 export async function resolveCollection(
   client: ModrinthClient,
@@ -833,11 +845,15 @@ export async function resolveCollection(
   const failedCollectionProjectIds = new Set<string>();
   for (const projectId of exportableCollectionIds) {
     throwIfAborted(opts.signal);
+    const collectionProj = projectMap.get(projectId);
+    const projectLabel = collectionProj
+      ? `${collectionProj.title} (${collectionProj.slug})`
+      : projectId;
     opts.onProgress?.({
       phase: 'versions',
       loaded: loadedVersions,
       total: exportableCollectionIds.length,
-      message: `Fetching versions for ${projectId}`,
+      message: `Fetching versions for ${projectLabel}`,
     });
     try {
       const versions = await client.getProjectVersions(
@@ -966,7 +982,7 @@ export async function resolveCollection(
       for (const depId of missingProjects) {
         const proj = projectMap.get(depId);
         if (!proj) {
-          // Create a placeholder project with no versions so dependency unavailability is surfaced in status (§7.4)
+          // Create a placeholder project with no versions so dependency unavailability is surfaced in status
           const placeholder = makePlaceholderProjectInfo(depId);
           projectMap.set(depId, placeholder);
           versionsByProject.set(depId, []);
@@ -1002,6 +1018,13 @@ export async function resolveCollection(
           versionsByProject.set(depId, []);
           continue;
         }
+
+        opts.onProgress?.({
+          phase: 'dependencies',
+          loaded: fetchedProjectIds.size,
+          total: fetchedProjectIds.size,
+          message: `Fetching versions for ${proj.title} (${proj.slug})`,
+        });
 
         try {
           const versions = await client.getProjectVersions(
@@ -1142,6 +1165,28 @@ export async function resolveCollection(
   }
 
   const entriesWithSelection = applyInitialSelection(rawEntries);
+  registerKnownProjectTitles([...projectMap.values()]);
+
+  const missingOptionalIds = new Set<string>();
+  for (const entry of entriesWithSelection) {
+    for (const env of ENVIRONMENTS) {
+      for (const optId of extractOptionalDependencyIds(entry.environments[env].version)) {
+        if (!projectMap.has(optId) && !getKnownProjectTitle(optId)) {
+          missingOptionalIds.add(optId);
+        }
+      }
+    }
+  }
+  if (missingOptionalIds.size > 0) {
+    try {
+      const optProjects = await client.getProjects([...missingOptionalIds], requestOpts);
+      registerKnownProjectTitles(optProjects);
+    } catch (err: unknown) {
+      if (isAbortError(err, opts.signal)) {
+        throw err;
+      }
+    }
+  }
 
   throwIfAborted(opts.signal);
   opts.onProgress?.({
@@ -1174,7 +1219,7 @@ export async function resolveCollection(
 /**
  * Pure synchronous helper that overrides an entry's chosen version in `env`,
  * recomputes that environment's dependency closure and `requiredBy` edges,
- * updates auto-selected / auto-deselected dependencies, and returns `{ instance, changes }` (§7.2, §7.3).
+ * updates auto-selected / auto-deselected dependencies, and returns `{ instance, changes }`.
  */
 export function recomputeDependencyClosure(
   instance: Instance,
@@ -1286,7 +1331,7 @@ export function recomputeDependencyClosure(
   }
 
   // Synthesize placeholder ProjectInfo for any unknown dependency projectId referenced by known versions
-  // so missing dependencies in the closure still produce an Entry with version: null and requiredBy populated (§7.4)
+  // so missing dependencies in the closure still produce an Entry with version: null and requiredBy populated
   for (const verList of versionsByProject.values()) {
     for (const v of verList) {
       for (const dep of v.dependencies) {
@@ -1418,7 +1463,7 @@ export function recomputeDependencyClosure(
     }
   }
 
-  // Recompute selection and collect auto-select / auto-deselect changes in `env` (§7.3)
+  // Recompute selection and collect auto-select / auto-deselect changes in `env`
   const selectionRoots: Entry[] = [];
   for (const entry of entryMap.values()) {
     const st = entry.environments[env];
@@ -1453,7 +1498,7 @@ export function recomputeDependencyClosure(
       if (!isSelectable(depState)) {
         continue;
       }
-      // A dependency explicitly turned off by the user (off/user) stays off (§7.3)
+      // A dependency explicitly turned off by the user (off/user) stays off
       if (!depState.selection.on && depState.selection.source === 'user') {
         continue;
       }
@@ -1527,7 +1572,7 @@ export function recomputeDependencyClosure(
 
 /**
  * Async version override that fetches any newly required dependency projects, versions,
- * or pinned version IDs from `ModrinthClient` before recomputing the environment's closure (§7.2).
+ * or pinned version IDs from `ModrinthClient` before recomputing the environment's closure.
  */
 export async function changeEntryVersion(
   instance: Instance,
@@ -1675,11 +1720,35 @@ export async function changeEntryVersion(
   }
 
   throwIfAborted(signal);
-  return recomputeDependencyClosure(instance, {
+  const recomputed = recomputeDependencyClosure(instance, {
     projectId,
     env,
     versionId,
     extraProjects,
     extraVersions,
   });
+  registerKnownProjectTitles([...projectMap.values()]);
+
+  const missingOptionalIds = new Set<string>();
+  for (const entry of recomputed.instance.entries) {
+    for (const e of ENVIRONMENTS) {
+      for (const optId of extractOptionalDependencyIds(entry.environments[e].version)) {
+        if (!projectMap.has(optId) && !getKnownProjectTitle(optId)) {
+          missingOptionalIds.add(optId);
+        }
+      }
+    }
+  }
+  if (missingOptionalIds.size > 0) {
+    try {
+      const optProjects = await client.getProjects([...missingOptionalIds], requestOpts);
+      registerKnownProjectTitles(optProjects);
+    } catch (err: unknown) {
+      if (isAbortError(err, signal)) {
+        throw err;
+      }
+    }
+  }
+
+  return recomputed;
 }

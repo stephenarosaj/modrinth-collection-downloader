@@ -1,42 +1,17 @@
-# Architecture
+# Architecture & Runtime Invariants
 
 `modrinth-collection-downloader` uses a strict Hexagonal / Clean Architecture so that all domain resolution, dependency closure, selection reducers, status calculation, file naming, and export projections remain 100% pure TypeScript with zero browser, React, or network coupling.
 
 ---
 
-## 1. Directory Layout & Layers
+## 1. Layers & Import Rules
 
-```text
-src/
-  core/       Pure TypeScript domain logic.
-              Model types, resolver, dependency closure, selection reducers,
-              status engine, file naming, and projections (tables, fileTree,
-              instance.json serialization, .mrpack index generation).
-              NO React, NO DOM, NO fetch, NO adapters.
-  ports/      Pure TypeScript interfaces defining external boundaries.
-  adapters/   Concrete implementations of ports:
-              - modrinth/ (Modrinth HTTP API client with batching, concurrency limit, retry/backoff)
-              - fetch/    (Browser binary file fetcher with AbortSignal support)
-              - zip/      (JSZip wrapper implementing ArchiveWriter)
-  ui/         React components and hooks. Renders projections from core and dispatches
-              actions to core reducers.
-  app/        Composition root and app configuration (APP_NAME). Wires concrete
-              adapters into core workflows and mounts the UI.
-schema/       instance.schema.json (JSON Schema for Instance v1)
-docs/         Project documentation
-tests/        Recorded API fixtures and integration/boundary tests
-```
-
----
-
-## 2. Import Rules (§5.1)
-
-Architectural boundaries are enforced in CI by ESLint (`eslint-plugin-boundaries`):
+Architectural boundaries are enforced in CI by ESLint (`eslint-plugin-boundaries` in [`eslint.config.js`](../eslint.config.js)) and tested against synthetic violations in [`tests/boundaries.test.ts`](../tests/boundaries.test.ts).
 
 ```mermaid
 flowchart TD
   app["src/app (Composition Root)"]
-  ui["src/ui (React Components & Hooks)"]
+  ui["src/ui (React Components & Export Orchestration)"]
   adapters["src/adapters (modrinth, fetch, zip)"]
   core["src/core (Pure Domain Logic)"]
   ports["src/ports (Interfaces Only)"]
@@ -55,31 +30,26 @@ flowchart TD
   core --> ports
 ```
 
-| Layer | Allowed Imports | Forbidden Imports |
-|---|---|---|
-| `src/ports` | `src/core` (domain types only) | `adapters`, `ui`, `app`, React, DOM, JSZip |
-| `src/core` | `src/core`, `src/ports` (types only) | `adapters`, `ui`, `app`, React, DOM, `fetch`, JSZip |
-| `src/adapters` | `src/ports`, `src/core` (types/utilities) | `ui`, `app`, React |
-| `src/ui` | `src/core`, `src/ports` (types) | `src/adapters`, `src/app`, JSZip |
-| `src/app` | `src/core`, `src/ports`, `src/adapters`, `src/ui` | _(Composition root)_ |
+| Layer | Path | Responsibility & Allowed Imports | Forbidden Imports |
+| :--- | :--- | :--- | :--- |
+| **`ports`** | [`src/ports/`](../src/ports/) | `ModrinthClient`, `FileFetcher`, `ArchiveWriter` interfaces (`core` types only) | `adapters`, `ui`, `app`, `react`, DOM, `fetch`, `jszip` |
+| **`core`** | [`src/core/`](../src/core/) | `model`, `collection`, `resolver`, `reducers`, `status`, `naming`, `projections`, `serialize` (`core` + `ports` types) | `adapters`, `ui`, `app`, `react`, DOM, `fetch`, `jszip` |
+| **`adapters`** | [`src/adapters/`](../src/adapters/) | `modrinth/` (API client), `fetch/` (binary downloader), `zip/` (sole `jszip` importer), `http-retry.ts` | `ui`, `app`, `react` |
+| **`ui`** | [`src/ui/`](../src/ui/) | `App.tsx`, `download.ts`, `utils.ts`, `styles.css`, and `components/*` (`core` + `ports` types) | `adapters`, `app`, `jszip` |
+| **`app`** | [`src/app/`](../src/app/) | `main.tsx`, `services.ts`, `config.ts` (`APP_NAME`) — wires adapters into `ui` | *(Composition root)* |
 
 ---
 
-## 3. Ports (§5.2)
-
-All external side effects are abstracted behind three ports in `src/ports/`:
+## 2. Ports (`src/ports/index.ts`)
 
 ```ts
 interface ModrinthClient {
-  getCollection(id: string): Promise<{ id: string; name: string; projectIds: string[] }>;
-  getProjects(ids: string[]): Promise<ProjectInfo[]>; // batched
-  getProjectVersions(
-    projectId: string,
-    q: { gameVersion: string; platform?: string }
-  ): Promise<VersionInfo[]>;
-  getVersionsByIds(ids: string[]): Promise<VersionInfo[]>; // batched; for pinned dependency versions
-  getGameVersions(): Promise<GameVersionInfo[]>; // /v2/tag/game_version
-  getPlatforms(): Promise<PlatformInfo[]>; // /v2/tag/loader
+  getCollection(id: string, opts?: RequestOptions): Promise<CollectionInfo>;
+  getProjects(ids: string[], opts?: RequestOptions): Promise<ProjectInfo[]>; // batched (100 IDs/call)
+  getProjectVersions(projectId: string, q: ProjectVersionsQuery, opts?: RequestOptions): Promise<VersionInfo[]>;
+  getVersionsByIds(ids: string[], opts?: RequestOptions): Promise<VersionInfo[]>; // batched; pinned deps
+  getGameVersions(opts?: RequestOptions): Promise<GameVersionInfo[]>; // /v2/tag/game_version
+  getPlatforms(opts?: RequestOptions): Promise<PlatformInfo[]>; // /v2/tag/loader
 }
 
 interface FileFetcher {
@@ -87,49 +57,29 @@ interface FileFetcher {
 }
 
 interface ArchiveWriter {
-  create(): Archive;
-}
-
-interface Archive {
-  addFile(path: string, data: Uint8Array | string): void;
-  generate(opts?: { onProgress?: (pct: number) => void }): Promise<Blob>;
+  create(): Archive; // addFile(path, data) + generate({ onProgress })
 }
 ```
 
-### Adapter Responsibilities
+---
 
-- **`adapters/modrinth`:** Wraps Modrinth HTTP endpoints, normalizes raw API fields (`loaders` → `platforms`, `client_side`/`server_side` → `environments`), batches ID lookups, caps concurrent requests (default 5), retries `429`/`5xx` responses honoring `Retry-After` and `X-Ratelimit-*` headers, and propagates `AbortSignal`.
-- **`adapters/fetch`:** Downloads project binary files into `Uint8Array` buffers with `AbortSignal` support.
-- **`adapters/zip`:** Encapsulates `JSZip` behind `ArchiveWriter` / `Archive`. `JSZip` is never imported outside `src/adapters/zip/`.
+## 3. UI Concurrency, Performance & Accessibility Invariants (`src/ui/`)
+
+1. **Synchronous Pre-`Await` Abort & Identity Guards ([`src/ui/App.tsx`](../src/ui/App.tsx)):**
+   - Starting collection load (`executeLoadCollection`), file import (`handleImportFile`), version override (`handleChangeEntryVersion`), or archive export (`handleExportEnvironmentZip`, `handleExportMrpack`) **must** abort conflicting `AbortController` refs synchronously before the first `await` (including before `await readFileText(file)`).
+   - Guard every post-`await` state update (`try`, `catch`, `finally`, and `onProgress`) with `controllerRef.current === controller && !controller.signal.aborted`.
+   - Reset auxiliary session state (`platformVersion`, `zipResult`, `exportError`, `importError`, `flashingCells`, `toastMessage`) on every new collection load or `instance.json` import.
+2. **500-Row $O(1)$ Render Isolation ([`src/ui/components/EntryTables.tsx`](../src/ui/components/EntryTables.tsx), [`src/ui/App.tsx`](../src/ui/App.tsx)):**
+   - `EntryTableRow` (`areEntryRowPropsEqual`) and `EnvironmentCell` (`areEnvCellPropsEqual`) use `React.memo` with structural equality checks on row data, row status, active environments, and cell flash state, paired with `instanceRef`-stabilized callbacks in `App.tsx`.
+   - Toggling a single cell in a 500-row table re-renders only the affected row(s) (verified in [`tests/ui/m5-polish.test.tsx`](../tests/ui/m5-polish.test.tsx)).
+3. **Accessibility (`axe-core` & WCAG 2.1 SC 1.4.13):**
+   - All UI states must pass `axe-core` with **0 violations** ([`tests/ui/m3-3-status.test.tsx`](../tests/ui/m3-3-status.test.tsx)).
+   - [`StatusSymbol`](../src/ui/components/StatusSymbol.tsx) is a keyboard-focusable `<button type="button">` whose tooltip (`role="tooltip"`) dismisses on `Escape` without blurring the trigger and persists across the trigger-to-tooltip hover gap.
 
 ---
 
-## 4. Data Flow: "One Data, Three Views"
+## 4. Testing Conventions (`tests/`)
 
-At the center of the application is a single immutable data structure: **`Instance`** (`src/core/model.ts`).
-
-1. **Resolution (`ModrinthClient` → `Instance`):**
-   - The resolver fetches collection metadata, project info, compatible versions, and transitive required dependencies per environment (`client` and `server`), producing an initial `Instance`.
-2. **State Transitions (`(Instance, Action) => { instance: Instance; changes: Change[] }`):**
-   - User interactions (selecting/deselecting an entry in an environment, select-all, overriding a candidate version) are handled by pure core reducers.
-   - Reducers return the updated `Instance` along with a `changes` list of auto-selected or auto-deselected cells (which drives the UI flash animation and toast notifications).
-3. **Pure Projections (`Instance` → Views & Outputs):**
-   - **Review UI Tables:** `toTables(instance): TableModel[]` and `computeStatus(instance)` project the `Instance` into per-type table rows, dependency footers, and per-environment status symbols.
-   - **Environment Zip Trees:** `toFileTree(instance): { client: FileTree; server: FileTree }` computes target folder paths, collision-safe filenames, and download URLs for `<collectionId>-client.zip` and `<collectionId>-server.zip`.
-   - **Portable JSON:** `serialize(instance): string` and `deserialize(json): Instance` provide lossless, schema-validated `instance.json` export and offline import.
-   - **Modrinth Modpack:** `toMrpack(instance, opts): MrpackIndex` projects the `Instance` into a `modrinth.index.json` manifest packaged into `<collectionId>.mrpack`.
-
----
-
-## 5. UI Export Orchestration & Resilience (`src/ui/`)
-
-The `src/ui/` layer depends exclusively on `src/core/` and `src/ports/` (interfaces injected by `src/app/`):
-
-- **Export Orchestrator (`src/ui/download.ts`):**
-  - `exportEnvironmentZip`: Uses `toFileTree(instance)[env]` to fetch binary files on demand via `FileFetcher` with bounded concurrency, live progress reporting, and `AbortSignal` cancellation, then writes all succeeded files to `ArchiveWriter`. If a subset of downloads fail, it packages all successful files into `<collectionId>-<env>.zip` and returns the failure list (`failed`) for display and retry.
-  - `exportInstanceJson`: Calls `serialize(instance)` (which validates against `schema/instance.schema.json`) and triggers a browser download of `<collectionId>-instance.json`.
-  - `exportMrpack`: Calls `toMrpack(instance, opts)` and writes `modrinth.index.json` into `<collectionId>.mrpack` via `ArchiveWriter` without fetching project binaries.
-- **Partial-Result Resolution (`src/core/resolver.ts`):**
-  - When a subset of `getProjectVersions` or transitive dependency requests fail with non-abort errors, `resolveCollection` records the affected projects in `skipped` and returns a valid `Instance` containing all succeeded projects.
-- **Large-Collection Rendering (`src/ui/components/EntryTables.tsx`):**
-  - Individual table rows (`<EntryRow />`) are wrapped in `React.memo` with custom equality checks on row model, row status, active environments, and cell flash state so toggling a single cell in a 500-entry collection only re-renders the affected rows.
+1. **`tests/core/*.test.ts` (Pure In-Memory):** Never use `fetch` or real network I/O. Use [`FakeModrinthClient`](../tests/helpers/fake-modrinth-client.ts) (which supports call recording, `AbortSignal`, and `failOn(key, error)` fault injection).
+2. **`tests/adapters/*.test.ts` (Recorded Fixtures & Injectable Clocks):** Test against recorded live Modrinth responses in [`tests/fixtures/modrinth/`](../tests/fixtures/modrinth/). Inject deterministic `sleep` and `now` callbacks into `HttpModrinthClient` / `HttpFileFetcher` — never use wall-clock `setTimeout` delays.
+3. **`tests/ui/*.test.tsx` (Accessibility & Memo Isolation):** Keep `axe-core` zero-violation assertions, WCAG `Escape` tooltip tests, and the 500-entry render-isolation test green.

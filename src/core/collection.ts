@@ -1,7 +1,10 @@
-// Collection input parsing and game version filtering utilities (§7.6, §11).
+/**
+ * Collection input parsing and game version filtering utilities.
+ */
 
 import type { GameVersionInfo } from '../ports';
 
+/** Normalized collection identifier and canonical URL. */
 export interface ParsedCollectionInput {
   collectionId: string;
   url: string;
@@ -13,7 +16,7 @@ const COLLECTION_URL_RE =
 
 /**
  * Parses a Modrinth collection URL or bare collection ID into a normalized
- * `{ collectionId, url }` pair (§7.6, §11).
+ * `{ collectionId, url }` pair.
  *
  * Throws an Error if the input is empty or not a valid Modrinth collection URL/ID.
  */
@@ -50,7 +53,7 @@ export function extractCollectionId(input: string): string {
 }
 
 /**
- * Filters a list of Modrinth game versions to release versions only (§7.6, §11).
+ * Filters a list of Modrinth game versions to release versions only.
  */
 export function filterReleaseGameVersions(versions: readonly GameVersionInfo[]): GameVersionInfo[] {
   return versions.filter(

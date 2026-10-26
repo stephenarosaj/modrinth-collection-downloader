@@ -1,3 +1,4 @@
+/** Returns true if the provided error represents an operation cancellation (`AbortError`). */
 export function isAbortError(err: unknown): boolean {
   if (!err || typeof err !== 'object') {
     return false;
@@ -5,6 +6,10 @@ export function isAbortError(err: unknown): boolean {
   return 'name' in err && (err as { name?: string }).name === 'AbortError';
 }
 
+/**
+ * Formats an unknown error or exception into an actionable, user-facing error message
+ * with context-sensitive guidance for rate limits, 404s, 5xx server errors, and network issues.
+ */
 export function formatUserFacingError(
   err: unknown,
   fallback = 'An unexpected error occurred.',

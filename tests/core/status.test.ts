@@ -137,7 +137,7 @@ function makeInstance(entries: Entry[]): Instance {
   };
 }
 
-describe('Status table rules (§7.4) — table-driven single-reason & priority tests', () => {
+describe('Status table rules — table-driven single-reason & priority tests', () => {
   const statusCases: {
     name: string;
     entries: Entry[];
@@ -155,7 +155,7 @@ describe('Status table rules (§7.4) — table-driven single-reason & priority t
       expectedReasons: [],
     },
     {
-      name: 'NO_COMPATIBLE_VERSION (error) when support !== unsupported and version === null',
+      name: 'NO_COMPATIBLE_VERSION (error) when support === required and version === null',
       entries: [
         makeEntry('mod-no-ver', {
           client: { support: 'required', version: null, selection: { on: false, source: 'none' } },
@@ -164,6 +164,18 @@ describe('Status table rules (§7.4) — table-driven single-reason & priority t
       targetId: 'mod-no-ver',
       env: 'client',
       expectedKind: 'error',
+      expectedReasons: ['NO_COMPATIBLE_VERSION'],
+    },
+    {
+      name: 'NO_COMPATIBLE_VERSION (warning) when support === optional, version === null, and not needed by selected parent',
+      entries: [
+        makeEntry('mod-opt-no-ver', {
+          client: { support: 'optional', version: null, selection: { on: false, source: 'none' } },
+        }),
+      ],
+      targetId: 'mod-opt-no-ver',
+      env: 'client',
+      expectedKind: 'warning',
       expectedReasons: ['NO_COMPATIBLE_VERSION'],
     },
     {
@@ -293,6 +305,32 @@ describe('Status table rules (§7.4) — table-driven single-reason & priority t
       env: 'client',
       expectedKind: 'warning',
       expectedReasons: ['REQUIRED_DEPENDENCY_NOT_SELECTED'],
+    },
+    {
+      name: 'DEPENDENCY_NOT_SELECTED (warning) when selected parent has a selectable required dependency that is off',
+      entries: [
+        makeEntry('parent', {
+          client: {
+            version: makeVersion('parent-v1', [
+              { projectId: 'dep-off', type: 'required' },
+            ]),
+            dependencies: ['dep-off'],
+            selection: { on: true, source: 'user' },
+          },
+        }),
+        makeEntry('dep-off', {
+          origin: 'dependency',
+          client: {
+            support: 'optional',
+            requiredBy: ['parent'],
+            selection: { on: false, source: 'user' },
+          },
+        }),
+      ],
+      targetId: 'parent',
+      env: 'client',
+      expectedKind: 'warning',
+      expectedReasons: ['DEPENDENCY_NOT_SELECTED'],
     },
     {
       name: 'PIN_CONFLICT (warning) when two requiring entries in same environment pin different compatible versions',
@@ -560,6 +598,38 @@ describe('Status table rules (§7.4) — table-driven single-reason & priority t
       expectedReasons: [],
     },
     {
+      name: 'DEPENDENCY_NOT_SELECTED (warning) propagates transitively when a 2-hop required dependency is deselected',
+      entries: [
+        makeEntry('grandparent', {
+          client: {
+            dependencies: ['mid-dep'],
+            selection: { on: true, source: 'user' },
+          },
+        }),
+        makeEntry('mid-dep', {
+          origin: 'dependency',
+          client: {
+            support: 'optional',
+            dependencies: ['leaf-dep'],
+            requiredBy: ['grandparent'],
+            selection: { on: true, source: 'auto' },
+          },
+        }),
+        makeEntry('leaf-dep', {
+          origin: 'dependency',
+          client: {
+            support: 'optional',
+            requiredBy: ['grandparent', 'mid-dep'],
+            selection: { on: false, source: 'user' },
+          },
+        }),
+      ],
+      targetId: 'grandparent',
+      env: 'client',
+      expectedKind: 'warning',
+      expectedReasons: ['DEPENDENCY_NOT_SELECTED'],
+    },
+    {
       name: 'PLATFORM_UNVERIFIED (warning) when resolution === game-version-fallback',
       entries: [
         makeEntry('mod-fallback', {
@@ -629,7 +699,7 @@ describe('Status table rules (§7.4) — table-driven single-reason & priority t
   });
 });
 
-describe('Environment toggles & row status aggregation (§7.3.1, §7.4)', () => {
+describe('Environment toggles & row status aggregation', () => {
   it('computes row status across active environments only and returns null when neither environment is active', () => {
     const instance = makeInstance([
       makeEntry('mod-mixed', {

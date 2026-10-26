@@ -9,6 +9,10 @@ function normalizeArchivePath(path: string): string {
   return normalized;
 }
 
+/**
+ * Archive adapter implementation backed by JSZip.
+ * Packages added files into a zip archive blob using DEFLATE compression.
+ */
 export class JsZipArchive implements Archive {
   private readonly zip: JSZip;
 
@@ -78,12 +82,14 @@ export class JsZipArchive implements Archive {
   }
 }
 
+/** ArchiveWriter adapter that creates fresh JsZipArchive instances. */
 export class JsZipArchiveWriter implements ArchiveWriter {
   create(): Archive {
     return new JsZipArchive();
   }
 }
 
+/** Factory function creating a new JsZipArchiveWriter instance. */
 export function createArchiveWriter(): ArchiveWriter {
   return new JsZipArchiveWriter();
 }

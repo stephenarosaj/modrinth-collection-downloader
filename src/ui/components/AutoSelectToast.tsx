@@ -1,5 +1,6 @@
 import { ENVIRONMENTS, type Change, type ChangeReason } from '../../core';
 
+/** Props for {@link AutoSelectToast}. */
 export interface AutoSelectToastProps {
   message: string | null;
   onDismiss?: () => void;
@@ -8,8 +9,8 @@ export interface AutoSelectToastProps {
 const CHANGE_REASONS: readonly ChangeReason[] = ['auto-selected', 'auto-deselected'] as const;
 
 /**
- * Formats a list of reducer/version-override `Change`s into a concise summary
- * for the auto-select toast (§7.5), e.g. `"Auto-selected 3 client dependencies"`.
+ * Formats a list of reducer/version-override `Change` records into a concise summary
+ * for the toast notification, e.g. `"Auto-selected 3 client dependencies"`.
  */
 export function formatAutoSelectChanges(changes: readonly Change[]): string | null {
   if (changes.length === 0) {
@@ -32,6 +33,10 @@ export function formatAutoSelectChanges(changes: readonly Change[]): string | nu
   return segments.length > 0 ? segments.join(' · ') : null;
 }
 
+/**
+ * Non-intrusive polite toast notification announcing automatic dependency selection
+ * and deselection state transitions with an optional manual dismiss button.
+ */
 export function AutoSelectToast({ message, onDismiss }: AutoSelectToastProps) {
   if (!message) {
     return null;

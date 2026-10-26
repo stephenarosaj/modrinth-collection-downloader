@@ -9,6 +9,7 @@ import {
 import type { GameVersionInfo, ModrinthClient, PlatformInfo } from '../../ports';
 import { isAbortError } from '../utils';
 
+/** Form values defining the target instance configuration. */
 export interface TargetFormValues {
   collectionInput: string;
   gameVersion: string;
@@ -16,6 +17,7 @@ export interface TargetFormValues {
   releasePreference: ReleasePreference;
 }
 
+/** Props for {@link TargetForm}. */
 export interface TargetFormProps {
   modrinthClient?: ModrinthClient;
   isResolving: boolean;
@@ -39,6 +41,10 @@ function filterPlatforms(platforms: readonly PlatformInfo[]): PlatformInfo[] {
   return platforms.filter((p) => p.name.trim().toLowerCase() !== 'datapack');
 }
 
+/**
+ * Configuration form capturing collection URL or ID, Minecraft game version,
+ * mod platform/loader, and release preference, with support for offline `instance.json` import.
+ */
 export function TargetForm({
   modrinthClient,
   isResolving,

@@ -30,7 +30,7 @@ import {
 
 /**
  * Modrinth loader tags whose `supported_project_types` includes `"mod"`
- * and neither `"plugin"` nor `"datapack"` (verified in `docs/modrinth-api-notes.md` §1).
+ * and neither `"plugin"` nor `"datapack"` (verified in `docs/modrinth-api-notes.md`).
  */
 export const MOD_LOADERS: ReadonlySet<string> = new Set([
   'babric',
@@ -50,7 +50,7 @@ export const MOD_LOADERS: ReadonlySet<string> = new Set([
 
 /**
  * Modrinth loader tags whose `supported_project_types` includes `"plugin"`
- * (verified in `docs/modrinth-api-notes.md` §1).
+ * (verified in `docs/modrinth-api-notes.md`).
  */
 export const PLUGIN_LOADERS: ReadonlySet<string> = new Set([
   'bukkit',
@@ -67,10 +67,11 @@ export const PLUGIN_LOADERS: ReadonlySet<string> = new Set([
 
 /**
  * Modrinth loader tags whose `supported_project_types` includes `"datapack"`
- * (verified in `docs/modrinth-api-notes.md` §1).
+ * (verified in `docs/modrinth-api-notes.md`).
  */
 export const DATAPACK_LOADERS: ReadonlySet<string> = new Set(['datapack']);
 
+/** Raw JSON payload schema returned by Modrinth `/v3/collection/{id}`. */
 export interface RawModrinthCollection {
   id: string;
   name?: string | null;
@@ -80,6 +81,7 @@ export interface RawModrinthCollection {
   projects?: string[] | null;
 }
 
+/** Raw JSON payload schema returned by Modrinth `/v2/project/{id}` and items of `/v2/projects`. */
 export interface RawModrinthProject {
   id: string;
   slug?: string | null;
@@ -93,6 +95,7 @@ export interface RawModrinthProject {
   updated?: string | null;
 }
 
+/** Raw JSON payload schema for file objects in Modrinth version endpoints. */
 export interface RawModrinthVersionFile {
   hashes?: {
     sha1?: string | null;
@@ -104,6 +107,7 @@ export interface RawModrinthVersionFile {
   size?: number | null;
 }
 
+/** Raw JSON payload schema for dependency declarations in Modrinth version endpoints. */
 export interface RawModrinthVersionDependency {
   version_id?: string | null;
   project_id?: string | null;
@@ -111,6 +115,7 @@ export interface RawModrinthVersionDependency {
   dependency_type?: string | null;
 }
 
+/** Raw JSON payload schema returned by Modrinth `/v2/version/{id}` and `/v2/project/{id}/version`. */
 export interface RawModrinthVersion {
   id: string;
   project_id: string;
@@ -124,6 +129,7 @@ export interface RawModrinthVersion {
   dependencies?: RawModrinthVersionDependency[] | null;
 }
 
+/** Raw JSON payload schema returned by Modrinth `/v2/tag/game_version`. */
 export interface RawModrinthGameVersionTag {
   version: string;
   version_type: string;
@@ -131,18 +137,21 @@ export interface RawModrinthGameVersionTag {
   major?: boolean | null;
 }
 
+/** Raw JSON payload schema returned by Modrinth `/v2/tag/loader`. */
 export interface RawModrinthLoaderTag {
   name: string;
   icon?: string | null;
   supported_project_types?: string[] | null;
 }
 
+/** Collection metadata extending CollectionInfo with description, optional icon URL, and user ID. */
 export interface CollectionDetails extends CollectionInfo {
   description: string;
   iconUrl?: string;
   userId?: string;
 }
 
+/** Project metadata extending ProjectInfo with description, platforms, and update timestamp. */
 export interface ModrinthProjectDetails extends ProjectInfo {
   description: string;
   iconUrl?: string;
@@ -150,20 +159,24 @@ export interface ModrinthProjectDetails extends ProjectInfo {
   updatedAt: string;
 }
 
+/** File attachment metadata extending VersionFileInfo. */
 export interface ModrinthVersionFileDetails extends VersionFileInfo {
   primary?: boolean;
 }
 
+/** Version dependency metadata extending VersionDependency with optional file name. */
 export interface ModrinthVersionDependencyDetails extends VersionDependency {
   fileName?: string;
 }
 
+/** Resolved version metadata extending VersionInfo. */
 export interface ModrinthVersionDetails extends VersionInfo {
   name: string;
   files: ModrinthVersionFileDetails[];
   dependencies: ModrinthVersionDependencyDetails[];
 }
 
+/** Configuration options for HttpModrinthClient. */
 export interface HttpModrinthClientOptions {
   baseUrl?: string;
   fetchImpl?: typeof fetch;
@@ -174,6 +187,7 @@ export interface HttpModrinthClientOptions {
   sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
 }
 
+/** Error thrown when a Modrinth API request fails, preserving the requested endpoint URL and HTTP status. */
 export class ModrinthApiError extends Error {
   public readonly url: string;
   public readonly status?: number;
@@ -190,7 +204,7 @@ export class ModrinthApiError extends Error {
  * Classifies a raw Modrinth `/v2/projects` object into a domain `ProjectType`
  * (or passes through unknown project types so the resolver can record them in `SkippedProject[]`).
  *
- * Precedence when `project_type === 'mod'` (`docs/modrinth-api-notes.md` §1):
+ * Precedence when `project_type === 'mod'` (`docs/modrinth-api-notes.md`):
  * 1. `hasModLoader` -> `'mod'`
  * 2. `hasPluginLoader` -> `'plugin'`
  * 3. `hasDatapackLoader` -> `'datapack'`
@@ -234,7 +248,7 @@ export function classifyProjectType(
 
 /**
  * Normalizes a Modrinth `client_side` or `server_side` string into a domain `Support` value
- * (`docs/modrinth-api-notes.md` §2).
+ * (`docs/modrinth-api-notes.md`).
  */
 export function normalizeSupportValue(value?: string | null): Support {
   const normalized = (value ?? '').trim().toLowerCase();
@@ -249,6 +263,7 @@ export function normalizeSupportValue(value?: string | null): Support {
   return 'unknown';
 }
 
+/** Normalizes a raw Modrinth version type string into a valid VersionType, defaulting to 'release'. */
 export function normalizeVersionType(value?: string | null): VersionType {
   const normalized = (value ?? '').trim().toLowerCase();
   if (normalized === 'release' || normalized === 'beta' || normalized === 'alpha') {
@@ -257,6 +272,7 @@ export function normalizeVersionType(value?: string | null): VersionType {
   return 'release';
 }
 
+/** Normalizes a raw Modrinth dependency type string into a valid DependencyType, defaulting to 'optional'. */
 export function normalizeDependencyType(value?: string | null): DependencyType {
   const normalized = (value ?? '').trim().toLowerCase();
   if (
@@ -364,6 +380,10 @@ function mapRawVersion(raw: RawModrinthVersion): ModrinthVersionDetails {
   };
 }
 
+/**
+ * ModrinthClient adapter that communicates with the Modrinth REST API.
+ * Handles concurrency limiting, batching for multi-project queries, retry with backoff, and cancellation.
+ */
 export class HttpModrinthClient implements ModrinthClient {
   private readonly baseUrl: string;
   private readonly fetchImpl: typeof fetch;
@@ -656,6 +676,7 @@ export class HttpModrinthClient implements ModrinthClient {
   }
 }
 
+/** Factory function creating a new HttpModrinthClient instance. */
 export function createModrinthClient(opts?: HttpModrinthClientOptions): HttpModrinthClient {
   return new HttpModrinthClient(opts);
 }

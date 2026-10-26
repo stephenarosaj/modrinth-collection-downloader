@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  CORE_SCHEMA_VERSION,
   ENVIRONMENTS,
+  PROJECT_TYPE_ORDER,
   changeEntryVersion,
   computeEntryStatus,
   deselectAllInTable,
   deselectEntry,
   deserialize,
   formatPlatformDisplayName,
+  getHeaderTriState,
   getMrpackWarnings,
   getSkippedEntries,
   hasSelectionChangedFromDefault,
@@ -31,7 +32,7 @@ import type { ArchiveWriter, FileFetcher, ModrinthClient } from '../ports';
 import { AutoSelectToast, formatAutoSelectChanges } from './components/AutoSelectToast';
 import { ConfirmReResolveDialog } from './components/ConfirmReResolveDialog';
 import { EntryTables } from './components/EntryTables';
-import { EnvironmentTogglesBar, type ActiveEnvironments } from './components/EnvironmentTogglesBar';
+import type { ActiveEnvironments } from './components/EnvironmentTogglesBar';
 import { ExportBar } from './components/ExportBar';
 import { ResolveProgressPanel } from './components/ResolveProgressPanel';
 import { SkippedSection } from './components/SkippedSection';
@@ -45,6 +46,7 @@ import {
 } from './download';
 import { formatUserFacingError, isAbortError } from './utils';
 
+/** Props for the root {@link App} component. */
 export interface AppProps {
   appName?: string;
   modrinthClient?: ModrinthClient;
@@ -106,6 +108,13 @@ async function readFileText(file: File): Promise<string> {
   });
 }
 
+/**
+ * Root React application component.
+ *
+ * Manages collection target configuration, resolution pipelines, the loaded
+ * immutable {@link Instance}, environment toggle lanes (defaulting to off),
+ * and export actions for zips, `.mrpack`, and `instance.json`.
+ */
 export function App({
   appName = 'modrinth-collection-downloader',
   modrinthClient,
@@ -396,6 +405,23 @@ export function App({
       ...prev,
       [env]: active,
     }));
+    if (active && instanceRef.current) {
+      let current = instanceRef.current;
+      let changed = false;
+      for (const projectType of PROJECT_TYPE_ORDER) {
+        if (getHeaderTriState(current, projectType, env) === 'unchecked') {
+          const res = selectAllInTable(current, projectType, env);
+          if (res.instance !== current) {
+            current = res.instance;
+            changed = true;
+          }
+        }
+      }
+      if (changed) {
+        instanceRef.current = current;
+        setInstance(current);
+      }
+    }
   }, []);
 
   const handleToggleEntrySelection = useCallback(
@@ -600,20 +626,14 @@ export function App({
 
   const tables = useMemo(() => (instance ? toTables(instance) : []), [instance]);
 
-  const fileTrees = useMemo(
-    () => (instance ? toFileTree(instance) : EMPTY_FILE_TREES),
-    [instance],
-  );
+  const fileTrees = useMemo(() => (instance ? toFileTree(instance) : EMPTY_FILE_TREES), [instance]);
 
   const mrpackPreview = useMemo(
     () => (instance ? toMrpack(instance, { platformVersion }) : EMPTY_MRPACK_PREVIEW),
     [instance, platformVersion],
   );
 
-  const mrpackWarnings = useMemo(
-    () => (instance ? getMrpackWarnings(instance) : []),
-    [instance],
-  );
+  const mrpackWarnings = useMemo(() => (instance ? getMrpackWarnings(instance) : []), [instance]);
 
   const activeEnvironmentIds = useMemo<EnvironmentId[]>(
     () => ENVIRONMENTS.filter((env) => activeEnvironments[env]),
@@ -639,8 +659,7 @@ export function App({
           <h1>{appName}</h1>
         </div>
         <p>
-          Build client &amp; server instances from a Modrinth collection — entirely in your browser
-          (schema v{CORE_SCHEMA_VERSION}).
+          Build client &amp; server instances from a Modrinth collection — entirely in your browser.
         </p>
       </header>
 
@@ -696,59 +715,55 @@ export function App({
 
         {instance && (
           <div className="review-workspace">
-            <section className="review-header card" aria-label="Collection summary">
-              <div className="review-meta">
-                <h2>{instance.meta.name}</h2>
-                <dl className="meta-badges">
-                  <div className="meta-pair">
-                    <dt>Collection</dt>
-                    <dd>{instance.meta.source.collectionId}</dd>
-                  </div>
-                  <div className="meta-pair">
-                    <dt>Game Version</dt>
-                    <dd>{instance.meta.target.gameVersion}</dd>
-                  </div>
-                  <div className="meta-pair">
-                    <dt>Platform</dt>
-                    <dd>{formatPlatformDisplayName(instance.meta.target.platform)}</dd>
-                  </div>
-                  <div className="meta-pair">
-                    <dt>Release Preference</dt>
-                    <dd>{instance.meta.target.releasePreference}</dd>
-                  </div>
-                </dl>
-              </div>
-            </section>
+            <div className="review-summary-export-card card">
+              <section className="review-header" aria-label="Collection summary">
+                <div className="review-meta">
+                  <h2>{instance.meta.name}</h2>
+                  <dl className="meta-badges">
+                    <div className="meta-pair">
+                      <dt>Collection</dt>
+                      <dd>{instance.meta.source.collectionId}</dd>
+                    </div>
+                    <div className="meta-pair">
+                      <dt>Game Version</dt>
+                      <dd>{instance.meta.target.gameVersion}</dd>
+                    </div>
+                    <div className="meta-pair">
+                      <dt>Platform</dt>
+                      <dd>{formatPlatformDisplayName(instance.meta.target.platform)}</dd>
+                    </div>
+                    <div className="meta-pair">
+                      <dt>Release Preference</dt>
+                      <dd>{instance.meta.target.releasePreference}</dd>
+                    </div>
+                  </dl>
+                </div>
+              </section>
 
-            <EnvironmentTogglesBar
-              activeEnvironments={activeEnvironments}
-              onToggleEnvironment={handleToggleEnvironment}
-              disabled={isResolving || isRecomputing || isExporting}
-            />
-
-            <ExportBar
-              activeEnvironments={activeEnvironments}
-              fileTrees={fileTrees}
-              mrpackPreview={mrpackPreview}
-              mrpackWarnings={mrpackWarnings}
-              platformVersion={platformVersion}
-              onPlatformVersionChange={setPlatformVersion}
-              canExportZip={Boolean(fileFetcher && archiveWriter)}
-              canExportMrpack={Boolean(archiveWriter)}
-              isRecomputing={isRecomputing}
-              isExporting={isExporting}
-              exportingEnv={exportingEnv}
-              zipProgress={zipProgress}
-              zipResult={zipResult}
-              onExportEnvironmentZip={(env) => {
-                void handleExportEnvironmentZip(env);
-              }}
-              onCancelZipExport={handleCancelZipExport}
-              onExportJson={handleExportJson}
-              onExportMrpack={() => {
-                void handleExportMrpack();
-              }}
-            />
+              <ExportBar
+                activeEnvironments={activeEnvironments}
+                fileTrees={fileTrees}
+                mrpackPreview={mrpackPreview}
+                mrpackWarnings={mrpackWarnings}
+                platformVersion={platformVersion}
+                onPlatformVersionChange={setPlatformVersion}
+                canExportZip={Boolean(fileFetcher && archiveWriter)}
+                canExportMrpack={Boolean(archiveWriter)}
+                isRecomputing={isRecomputing}
+                isExporting={isExporting}
+                exportingEnv={exportingEnv}
+                zipProgress={zipProgress}
+                zipResult={zipResult}
+                onExportEnvironmentZip={(env) => {
+                  void handleExportEnvironmentZip(env);
+                }}
+                onCancelZipExport={handleCancelZipExport}
+                onExportJson={handleExportJson}
+                onExportMrpack={() => {
+                  void handleExportMrpack();
+                }}
+              />
+            </div>
 
             <AutoSelectToast message={toastMessage} onDismiss={() => setToastMessage(null)} />
 
@@ -766,7 +781,9 @@ export function App({
               activeEnvironments={activeEnvironments}
               flashingCells={flashingCells}
               isRecomputing={isRecomputing || isExporting}
+              environmentTogglesDisabled={isResolving || isRecomputing || isExporting}
               skippedCount={combinedSkipped.length}
+              onToggleEnvironment={handleToggleEnvironment}
               onToggleEntrySelection={handleToggleEntrySelection}
               onToggleSelectAll={handleToggleSelectAll}
               onChangeEntryVersion={handleChangeEntryVersion}
@@ -805,6 +822,30 @@ export function App({
             Modrinth API
           </a>
           . All downloads happen directly in your browser.
+        </div>
+        <div>
+          Made with &lt;3 by Stephen Rosa{' | '}
+          <a
+            href="https://www.github.com/stephenarosaj/modrinth-collection-downloader"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            GitHub
+          </a>{' | '}
+          <a
+            href="https://www.linkedin.com/in/stephenarosaj/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            LinkedIn
+          </a>{' | '}
+          <a
+            href="https://www.buymeacoffee.com/stephenrosaj"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Buy Me A Coffee ☕
+          </a>
         </div>
       </footer>
     </div>

@@ -1,4 +1,6 @@
-// Deterministic serialization, deserialization, and JSON Schema validation for Instance (§6.1, §8.2, §10).
+/**
+ * Deterministic serialization, deserialization, and JSON Schema validation for Instance.
+ */
 
 import {
   CORE_SCHEMA_VERSION,
@@ -335,7 +337,7 @@ function validateEntry(value: unknown, path: string, errors: string[]): void {
 }
 
 /**
- * Validates an unknown value against `schema/instance.schema.json` (§8.2, §10).
+ * Validates an unknown value against `schema/instance.schema.json`.
  * Returns `{ valid: true, errors: [] }` when valid, or `{ valid: false, errors }` with detailed paths.
  */
 export function validateInstanceSchema(data: unknown): { valid: boolean; errors: string[] } {
@@ -508,7 +510,7 @@ function canonicalizeInstance(instance: Instance): Instance {
 }
 
 /**
- * Serializes an `Instance` to pretty-printed JSON with a stable, deterministic key order (§6.1, §8.2).
+ * Serializes an `Instance` to pretty-printed JSON with a stable, deterministic key order.
  * Validates against `schema/instance.schema.json` before serializing.
  */
 export function serialize(instance: Instance): string {
@@ -522,7 +524,7 @@ export function serialize(instance: Instance): string {
 }
 
 /**
- * Deserializes a JSON string into a validated `Instance` (§6.1, §8.2).
+ * Deserializes a JSON string into a validated `Instance`.
  * Throws a descriptive `Error` on malformed JSON, unknown `schemaVersion`, or schema violations.
  */
 export function deserialize(json: string): Instance {

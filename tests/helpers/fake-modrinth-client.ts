@@ -70,7 +70,7 @@ function throwIfAborted(opts?: RequestOptions): void {
 }
 
 /**
- * In-memory implementation of `ModrinthClient` for deterministic unit tests (§10).
+ * In-memory implementation of `ModrinthClient` for deterministic unit tests.
  */
 export class FakeModrinthClient implements ModrinthClient {
   private readonly collections = new Map<string, CollectionInfo>();

@@ -11,7 +11,7 @@ import {
 } from '../../src/core/model';
 import { FakeModrinthClient } from '../helpers/fake-modrinth-client';
 
-describe('M1 Foundation — Domain model and FakeModrinthClient', () => {
+describe('Foundation — Domain model and FakeModrinthClient', () => {
   it('exports authoritative constants and domain helpers', () => {
     expect(CORE_SCHEMA_VERSION).toBe(1);
     expect(ENVIRONMENTS).toEqual(['client', 'server']);

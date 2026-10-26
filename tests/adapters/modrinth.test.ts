@@ -261,7 +261,7 @@ describe('HttpModrinthClient — endpoints & fixture mapping', () => {
     expect(url2.searchParams.get('loaders')).toBe('["fabric"]');
   });
 
-  it('filters out dependencies with null, undefined, or whitespace project_id so resolveCollection and serialize succeed (F-03)', async () => {
+  it('filters out dependencies with null, undefined, or whitespace project_id so resolveCollection and serialize succeed', async () => {
     const rawCollection = {
       id: 'col-f03',
       name: 'Collection F-03',
@@ -391,7 +391,7 @@ describe('HttpModrinthClient — endpoints & fixture mapping', () => {
     expect(validateInstanceSchema(JSON.parse(json))).toEqual({ valid: true, errors: [] });
   });
 
-  it('maps versions whose files all have primary: false to file: null, and falls back when primary is undefined (F-05)', async () => {
+  it('maps versions whose files all have primary: false to file: null, and falls back when primary is undefined', async () => {
     const rawVersions: RawModrinthVersion[] = [
       {
         id: 'ver-all-false',
@@ -507,7 +507,7 @@ describe('HttpModrinthClient — endpoints & fixture mapping', () => {
     expect(fabric?.icon).toContain('<svg');
   });
 
-  it('services.modrinthClient lazily delegates to globalThis.fetch spy installed after import (F-06)', async () => {
+  it('services.modrinthClient lazily delegates to globalThis.fetch spy installed after import', async () => {
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
       .mockResolvedValueOnce(jsonResponse(collectionFixture));
@@ -661,7 +661,7 @@ describe('HttpModrinthClient — batching, concurrency, retry/backoff, and abort
     expect(sleepDelays).toEqual([4000, 2000, 1200]);
   });
 
-  it('throws ModrinthApiError with status when 429 or 5xx retries are exhausted, and retries transient network errors (F-07)', async () => {
+  it('throws ModrinthApiError with status when 429 or 5xx retries are exhausted, and retries transient network errors', async () => {
     const sleepDelays: number[] = [];
     const sleepMock = vi.fn(async (ms: number) => {
       sleepDelays.push(ms);
@@ -710,7 +710,7 @@ describe('HttpModrinthClient — batching, concurrency, retry/backoff, and abort
     expect(sleepDelays).toEqual([250]);
   });
 
-  it('retries mid-body response.json() failures, wraps in ModrinthApiError when exhausted, and normalizes mid-body abort (F-02)', async () => {
+  it('retries mid-body response.json() failures, wraps in ModrinthApiError when exhausted, and normalizes mid-body abort', async () => {
     const sleepDelays: number[] = [];
     const sleepMock = vi.fn(async (ms: number) => {
       sleepDelays.push(ms);
@@ -797,7 +797,7 @@ describe('HttpModrinthClient — batching, concurrency, retry/backoff, and abort
     expect(sleepMock).not.toHaveBeenCalled();
   });
 
-  it('honors AbortSignal when pre-aborted, queued in waitQueue for concurrency, or sleeping in retry backoff (F-07)', async () => {
+  it('honors AbortSignal when pre-aborted, queued in waitQueue for concurrency, or sleeping in retry backoff', async () => {
     const fetchMock = vi.fn<typeof fetch>();
     const client = createModrinthClient({ fetchImpl: fetchMock });
 

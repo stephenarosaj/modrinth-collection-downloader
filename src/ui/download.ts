@@ -10,6 +10,7 @@ import {
 import type { ArchiveWriter, FileFetcher } from '../ports';
 import { isAbortError } from './utils';
 
+/** Progress reported during binary downloading and archive compression. */
 export interface ZipExportProgress {
   phase: 'downloading' | 'archiving' | 'complete';
   completed: number;
@@ -18,6 +19,7 @@ export interface ZipExportProgress {
   currentFile?: string;
 }
 
+/** Record of a single file download failure during zip export. */
 export interface FailedDownload {
   path: string;
   filename: string;
@@ -26,6 +28,7 @@ export interface FailedDownload {
   error: string;
 }
 
+/** Options for exporting an environment zip archive. */
 export interface ExportEnvironmentZipOptions {
   instance: Instance;
   env: EnvironmentId;
@@ -37,6 +40,7 @@ export interface ExportEnvironmentZipOptions {
   onExportBlob?: (filename: string, blob: Blob) => void;
 }
 
+/** Result of an environment zip archive export operation. */
 export interface ExportEnvironmentZipResult {
   env?: EnvironmentId;
   filename: string;
@@ -46,6 +50,7 @@ export interface ExportEnvironmentZipResult {
   blob: Blob | null;
 }
 
+/** Options for generating a Modrinth `.mrpack` archive. */
 export interface ExportMrpackArchiveOptions {
   instance: Instance;
   archiveWriter: ArchiveWriter;
@@ -54,8 +59,10 @@ export interface ExportMrpackArchiveOptions {
   onExportBlob?: (filename: string, blob: Blob) => void;
 }
 
+/** Alias for {@link ExportMrpackArchiveOptions}. */
 export type ExportMrpackOptions = ExportMrpackArchiveOptions;
 
+/** Result of a Modrinth `.mrpack` archive generation. */
 export interface ExportMrpackArchiveResult {
   filename: string;
   index: MrpackIndex;
@@ -107,7 +114,7 @@ export function triggerTextDownload(
 
 /**
  * Serializes an `Instance` (validating against the instance schema) and triggers a download
- * of `<collectionId>-instance.json` (§8.2, §13 M3.1).
+ * of `<collectionId>-instance.json`.
  */
 export function exportInstanceJson(
   instance: Instance,
@@ -122,7 +129,7 @@ export function exportInstanceJson(
 /**
  * Downloads all selected files for an environment (`client` or `server`) with bounded concurrency,
  * packages successful downloads into per-type folders matching `toFileTree(instance)[env]`,
- * reports partial failures, and triggers a download of `<collectionId>-<env>.zip` (§8.1, §13 M4).
+ * reports partial failures, and triggers a download of `<collectionId>-<env>.zip`.
  */
 export async function exportEnvironmentZip({
   instance,
@@ -305,7 +312,7 @@ export async function exportEnvironmentZip({
 
 /**
  * Generates and downloads a Modrinth `.mrpack` archive containing `modrinth.index.json`
- * without downloading any project binaries (§8.3, §13 M4).
+ * without downloading any project binaries.
  */
 export async function exportMrpackArchive({
   instance,

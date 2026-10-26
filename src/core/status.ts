@@ -1,4 +1,6 @@
-// Pure status computation and human-readable reason formatting (§7.3.1, §7.4).
+/**
+ * Pure status computation and human-readable reason formatting.
+ */
 
 import {
   ENVIRONMENTS,
@@ -27,6 +29,7 @@ const REASON_KIND_MAP: Readonly<Record<Reason, Exclude<Kind, 'ok'>>> = {
   NO_COMPATIBLE_VERSION: 'error',
   DEPENDENCY_UNAVAILABLE: 'error',
   NEEDED_BUT_UNAVAILABLE: 'error',
+  DEPENDENCY_NOT_SELECTED: 'warning',
   REQUIRED_NOT_SELECTED: 'warning',
   REQUIRED_DEPENDENCY_NOT_SELECTED: 'warning',
   PIN_CONFLICT: 'warning',
@@ -34,10 +37,11 @@ const REASON_KIND_MAP: Readonly<Record<Reason, Exclude<Kind, 'ok'>>> = {
   SUPPORT_UNKNOWN: 'unknown',
 } as const;
 
-const REASON_MESSAGES: Readonly<Record<Reason, string>> = {
+export const REASON_MESSAGES: Readonly<Record<Reason, string>> = {
   NO_COMPATIBLE_VERSION: 'No compatible version is available for this environment.',
   DEPENDENCY_UNAVAILABLE: 'A required dependency is unavailable in this environment.',
   NEEDED_BUT_UNAVAILABLE: 'Required by a selected entry in this environment, but unavailable here.',
+  DEPENDENCY_NOT_SELECTED: 'A required dependency is not selected in this environment.',
   REQUIRED_NOT_SELECTED: 'Marked as required for this environment, but explicitly deselected.',
   REQUIRED_DEPENDENCY_NOT_SELECTED:
     'Required by a selected entry in this environment, but not selected.',
@@ -48,8 +52,70 @@ const REASON_MESSAGES: Readonly<Record<Reason, string>> = {
   SUPPORT_UNKNOWN: 'Environment support is unknown on Modrinth.',
 } as const;
 
+export const REASON_SHORT_TITLES: Readonly<Record<Reason, string>> = {
+  NO_COMPATIBLE_VERSION: 'No Compatible Version',
+  DEPENDENCY_UNAVAILABLE: 'Missing Dependency',
+  NEEDED_BUT_UNAVAILABLE: 'Required Dependency Unavailable',
+  DEPENDENCY_NOT_SELECTED: 'Unselected Dependency',
+  REQUIRED_NOT_SELECTED: 'Explicitly Deselected',
+  REQUIRED_DEPENDENCY_NOT_SELECTED: 'Required Dependency Unchecked',
+  PIN_CONFLICT: 'Version Pin Conflict',
+  PLATFORM_UNVERIFIED: 'Unverified Platform',
+  SUPPORT_UNKNOWN: 'Unknown Support',
+} as const;
+
+export interface BadgeTooltipMeta {
+  title: string;
+  description: string;
+  tone: 'ok' | 'warning' | 'unknown';
+}
+
+export const ENV_BADGE_TOOLTIP_META = {
+  support: {
+    required: (envLabel: string): BadgeTooltipMeta => ({
+      title: `Required on ${envLabel}`,
+      description: `Modrinth metadata marks this project as required for the ${envLabel.toLowerCase()} environment.`,
+      tone: 'ok',
+    }),
+    optional: (envLabel: string): BadgeTooltipMeta => ({
+      title: `Optional on ${envLabel}`,
+      description: `Modrinth metadata marks this project as optional for the ${envLabel.toLowerCase()} environment.`,
+      tone: 'ok',
+    }),
+    unknown: (): BadgeTooltipMeta => ({
+      title: REASON_SHORT_TITLES.SUPPORT_UNKNOWN,
+      description: REASON_MESSAGES.SUPPORT_UNKNOWN,
+      tone: 'unknown',
+    }),
+  },
+  selectionAuto: (envLabel: string): BadgeTooltipMeta => ({
+    title: 'Auto-Selected Dependency',
+    description: `Automatically enabled because a selected project in the ${envLabel.toLowerCase()} environment requires it.`,
+    tone: 'ok',
+  }),
+  versionType: {
+    beta: {
+      title: 'Beta Pre-Release',
+      description:
+        'Published on the beta channel; may include minor bugs or pre-release changes.',
+      tone: 'warning',
+    } satisfies BadgeTooltipMeta,
+    alpha: {
+      title: 'Alpha Pre-Release',
+      description:
+        'Published on the alpha channel; early build that may be unstable or experimental.',
+      tone: 'warning',
+    } satisfies BadgeTooltipMeta,
+  },
+  platformUnverified: {
+    title: REASON_SHORT_TITLES.PLATFORM_UNVERIFIED,
+    description: REASON_MESSAGES.PLATFORM_UNVERIFIED,
+    tone: 'warning',
+  } satisfies BadgeTooltipMeta,
+} as const;
+
 /**
- * Returns the severity `Kind` associated with a specific status `Reason` (§7.4).
+ * Returns the severity `Kind` associated with a specific status `Reason`.
  */
 export function getReasonKind(reason: Reason): Exclude<Kind, 'ok'> {
   return REASON_KIND_MAP[reason];
@@ -78,7 +144,7 @@ export function getWorstKind(kinds: Iterable<Kind>): Kind {
 }
 
 /**
- * Formats a `Reason` into a human-readable tooltip explanation, optionally prefixed with the environment label (§7.5).
+ * Formats a `Reason` into a human-readable tooltip explanation, optionally prefixed with the environment label.
  */
 export function formatReason(reason: Reason, env?: EnvironmentId): string {
   const baseMessage = REASON_MESSAGES[reason];
@@ -103,7 +169,7 @@ export function formatCellStatusTooltip(status: Status | null, env?: Environment
 }
 
 /**
- * Formats all active environment reasons of an `EntryStatus` into a tooltip string (§7.5).
+ * Formats all active environment reasons of an `EntryStatus` into a tooltip string.
  */
 export function formatRowStatusTooltip(entryStatus: EntryStatus): string {
   if (!entryStatus.row) {
@@ -137,7 +203,7 @@ function normalizeActiveEnvironments(
 }
 
 /**
- * Collects unique required dependency project IDs for `entry` in `env`.
+ * Collects unique direct required dependency project IDs for `entry` in `env`.
  * Uses `state.dependencies` if populated, or falls back to `state.version.dependencies` (`type === 'required'`).
  */
 function getRequiredDependencyIds(entry: Entry, env: EnvironmentId): string[] {
@@ -148,7 +214,53 @@ function getRequiredDependencyIds(entry: Entry, env: EnvironmentId): string[] {
 }
 
 /**
- * Checks whether `entry` is required in `env` by at least one currently selected entry.
+ * Collects unique transitive required dependency project IDs for `entry` in `env`,
+ * traversing both forward `dependencies` edges and reverse `requiredBy` edges.
+ */
+function getTransitiveRequiredDependencyIds(
+  entry: Entry,
+  env: EnvironmentId,
+  entryById: ReadonlyMap<string, Entry>,
+  allEntries: readonly Entry[],
+): string[] {
+  const visited = new Set<string>([entry.project.id]);
+  const queue: string[] = [...getRequiredDependencyIds(entry, env)];
+
+  for (const other of allEntries) {
+    if (
+      other.project.id !== entry.project.id &&
+      other.environments[env].requiredBy.includes(entry.project.id) &&
+      !queue.includes(other.project.id)
+    ) {
+      queue.push(other.project.id);
+    }
+  }
+
+  const result: string[] = [];
+
+  while (queue.length > 0) {
+    const depId = queue.shift()!;
+    if (visited.has(depId)) {
+      continue;
+    }
+    visited.add(depId);
+    result.push(depId);
+
+    const depEntry = entryById.get(depId);
+    if (depEntry) {
+      for (const nextDepId of getRequiredDependencyIds(depEntry, env)) {
+        if (!visited.has(nextDepId)) {
+          queue.push(nextDepId);
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Checks whether `entry` is required (directly or transitively) in `env` by at least one currently selected entry.
  */
 function isNeededBySelectedEntry(
   entry: Entry,
@@ -169,7 +281,12 @@ function isNeededBySelectedEntry(
     if (!candidateParent.environments[env].selection.on) {
       continue;
     }
-    const deps = getRequiredDependencyIds(candidateParent, env);
+    const deps = getTransitiveRequiredDependencyIds(
+      candidateParent,
+      env,
+      entryById,
+      allEntries,
+    );
     if (deps.includes(entry.project.id)) {
       return true;
     }
@@ -179,7 +296,7 @@ function isNeededBySelectedEntry(
 }
 
 /**
- * Checks whether multiple requiring entries in `env` pin different compatible versions of `entry` (§7.1, §7.4).
+ * Checks whether multiple requiring entries in `env` pin different compatible versions of `entry`.
  */
 function hasPinConflictInEnvironment(
   entry: Entry,
@@ -260,7 +377,7 @@ function evaluateCellStatus(
   const state = entry.environments[env];
   const neededBySelected = isNeededBySelectedEntry(entry, env, entryById, allEntries);
 
-  // An unsupported cell has no status unless it is needed by a selected entry in this environment (§7.4).
+  // An unsupported cell has no status unless it is needed by a selected entry in this environment.
   if (state.support === 'unsupported') {
     if (neededBySelected) {
       return {
@@ -280,7 +397,7 @@ function evaluateCellStatus(
 
   // 2. DEPENDENCY_UNAVAILABLE (error): entry is selected and a required dependency has version === null or support === 'unsupported'
   if (state.selection.on) {
-    const depIds = getRequiredDependencyIds(entry, env);
+    const depIds = getTransitiveRequiredDependencyIds(entry, env, entryById, allEntries);
     const hasUnavailableDep = depIds.some((depId) => {
       const depEntry = entryById.get(depId);
       if (!depEntry) {
@@ -291,6 +408,18 @@ function evaluateCellStatus(
     });
     if (hasUnavailableDep) {
       reasons.push('DEPENDENCY_UNAVAILABLE');
+    }
+
+    const hasUnselectedDep = depIds.some((depId) => {
+      const depEntry = entryById.get(depId);
+      if (!depEntry) {
+        return false;
+      }
+      const depState = depEntry.environments[env];
+      return isSelectable(depState) && !depState.selection.on;
+    });
+    if (hasUnselectedDep) {
+      reasons.push('DEPENDENCY_NOT_SELECTED');
     }
   }
 
@@ -324,12 +453,18 @@ function evaluateCellStatus(
     reasons.push('SUPPORT_UNKNOWN');
   }
 
-  const kind = getWorstKind(reasons.map((r) => REASON_KIND_MAP[r]));
+  const kind = getWorstKind(
+    reasons.map((r) =>
+      r === 'NO_COMPATIBLE_VERSION' && state.support === 'optional'
+        ? 'warning'
+        : REASON_KIND_MAP[r],
+    ),
+  );
   return { kind, reasons };
 }
 
 /**
- * Computes per-entry cell and row status (`EntryStatus`), respecting active environment toggles (§7.3.1, §7.4).
+ * Computes per-entry cell and row status (`EntryStatus`), respecting active environment toggles.
  * - Inactive environments yield `null` cell status and do not contribute to `row` status.
  * - Unsupported cells yield `null` cell status unless flagged with `NEEDED_BUT_UNAVAILABLE`.
  * - If no environments are active (or all active cells on the row are `null`), `row` is `null`.
@@ -397,7 +532,7 @@ export function computeEntryStatus(
 }
 
 /**
- * Pure status computation returning `Map<entryId, Record<EnvironmentId, Status>>` (§7.4).
+ * Pure status computation returning `Map<entryId, Record<EnvironmentId, Status>>`.
  * Unsupported cells (when not `NEEDED_BUT_UNAVAILABLE`) and inactive environments return `{ kind: 'ok', reasons: [] }`.
  */
 export function computeStatus(

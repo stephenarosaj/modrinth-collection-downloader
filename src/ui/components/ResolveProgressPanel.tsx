@@ -1,5 +1,6 @@
 import type { ResolveProgress } from '../../core';
 
+/** Props for {@link ResolveProgressPanel}. */
 export interface ResolveProgressPanelProps {
   isResolving: boolean;
   progress: ResolveProgress | null;
@@ -18,6 +19,10 @@ const PHASE_LABELS: Readonly<Record<ResolveProgress['phase'], string>> = {
   complete: 'Complete',
 };
 
+/**
+ * Accessible progress bar and phase status panel for background collection resolution,
+ * supporting operation cancellation, retry triggers, and detailed log streaming.
+ */
 export function ResolveProgressPanel({
   isResolving,
   progress,

@@ -188,8 +188,8 @@ async function renderAndLoadM32Collection(client: FakeModrinthClient) {
   await screen.findByRole('heading', { name: 'M3.2 Selection Suite' });
 }
 
-describe('M3.2 Selection and dependency auto-select', () => {
-  it('keeps Client and Server environment toggles off by default while showing underlying selections, and enables only the toggled column without mutating selections (§7.3.1)', async () => {
+describe('Selection and dependency auto-select', () => {
+  it('keeps Client and Server environment toggles off by default while showing underlying selections, and enables only the toggled column without mutating selections', async () => {
     const client = buildM32FakeClient();
     await renderAndLoadM32Collection(client);
 
@@ -222,30 +222,45 @@ describe('M3.2 Selection and dependency auto-select', () => {
     expect(alphaClientVer).toBeDisabled();
     expect(alphaClientVer.value).toBe('v-alpha-2');
     expect(alphaServerVer).toBeDisabled();
-    expect(modsClientSelectAll).toBeChecked();
-    expect(modsClientSelectAll).toBeDisabled();
-    expect(modsServerSelectAll).toBeChecked();
-    expect(modsServerSelectAll).toBeDisabled();
+    expect(modsClientSelectAll).not.toBeChecked();
+    expect(modsClientSelectAll).not.toBeDisabled();
+    expect(modsServerSelectAll).not.toBeChecked();
+    expect(modsServerSelectAll).not.toBeDisabled();
 
-    // Both columns have env-col-inactive class while off
+    // Body cells have env-col-inactive class while off, but header cells never gray out
     expect(alphaClientCb.closest('td')).toHaveClass('env-col-inactive');
     expect(alphaServerCb.closest('td')).toHaveClass('env-col-inactive');
+    expect(modsClientSelectAll.closest('th')).not.toHaveClass('env-col-inactive');
+    expect(modsServerSelectAll.closest('th')).not.toHaveClass('env-col-inactive');
+    expect(within(modsClientSelectAll.closest('th')!).getByText('Dependencies')).toBeInTheDocument();
+    expect(within(modsServerSelectAll.closest('th')!).getByText('Dependencies')).toBeInTheDocument();
 
-    // Enable Client environment only
+    // Enable Client environment only -> selects all and shows header Select all checked
     fireEvent.click(clientToggle);
     expect(clientToggle).toBeChecked();
     expect(serverToggle).not.toBeChecked();
 
     expect(alphaClientCb).not.toBeDisabled();
     expect(alphaClientVer).not.toBeDisabled();
+    expect(modsClientSelectAll).toBeChecked();
     expect(modsClientSelectAll).not.toBeDisabled();
     expect(alphaClientCb.closest('td')).not.toHaveClass('env-col-inactive');
 
-    // Server remains disabled and inactive
+    // Server row controls remain disabled and inactive while header Select all remains unchecked and clickable to auto-enable
     expect(alphaServerCb).toBeDisabled();
     expect(alphaServerVer).toBeDisabled();
-    expect(modsServerSelectAll).toBeDisabled();
+    expect(modsServerSelectAll).not.toBeChecked();
+    expect(modsServerSelectAll).not.toBeDisabled();
     expect(alphaServerCb.closest('td')).toHaveClass('env-col-inactive');
+
+    // Clicking the header Select all token for an inactive environment automatically enables that environment and selects all
+    fireEvent.click(modsServerSelectAll);
+    expect(serverToggle).toBeChecked();
+    expect(modsServerSelectAll).toBeChecked();
+    expect(alphaServerCb).not.toBeDisabled();
+    fireEvent.click(serverToggle);
+    expect(serverToggle).not.toBeChecked();
+    expect(modsServerSelectAll).not.toBeChecked();
 
     // Deselect Beta Mod on Client, then turn Client toggle off and back on: selection is preserved
     const betaClientCb = screen.getByLabelText('Select Beta Mod for Client') as HTMLInputElement;
@@ -262,7 +277,7 @@ describe('M3.2 Selection and dependency auto-select', () => {
     expect(betaClientCb).not.toBeChecked();
   });
 
-  it('auto-deselects auto dependencies only when no longer required by any selected entry, and preserves user-selected dependencies (§7.3)', async () => {
+  it('auto-deselects auto dependencies only when no longer required by any selected entry, and preserves user-selected dependencies', async () => {
     const client = buildM32FakeClient();
     await renderAndLoadM32Collection(client);
 
@@ -304,7 +319,7 @@ describe('M3.2 Selection and dependency auto-select', () => {
     expect(sharedClientCb).toBeChecked();
   });
 
-  it('enforces "user-off dependency stays off" when re-selecting parent mods or clicking Select All (§7.3)', async () => {
+  it('enforces "user-off dependency stays off" when re-selecting parent mods or clicking Select All', async () => {
     const client = buildM32FakeClient();
     await renderAndLoadM32Collection(client);
 
@@ -346,7 +361,7 @@ describe('M3.2 Selection and dependency auto-select', () => {
     expect(alphaOnlyClientCb).not.toBeChecked();
   });
 
-  it('updates header select-all tri-state (checked, indeterminate, unchecked) per table and environment and keeps environments independent (§7.3)', async () => {
+  it('updates header select-all tri-state (checked, indeterminate, unchecked) per table and environment and keeps environments independent', async () => {
     const client = buildM32FakeClient();
     await renderAndLoadM32Collection(client);
 
@@ -403,7 +418,7 @@ describe('M3.2 Selection and dependency auto-select', () => {
     expect(sharedServerCb).toBeChecked();
   });
 
-  it('recomputes dependency closure when changing version dropdown, fetching newly required dependencies and flashing + announcing changes for 1000ms (§7.2, §7.5)', async () => {
+  it('recomputes dependency closure when changing version dropdown, fetching newly required dependencies and flashing + announcing changes for 1000ms', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       const client = buildM32FakeClient();
@@ -469,11 +484,11 @@ describe('M3.2 Selection and dependency auto-select', () => {
       expect(alphaOnlyClientTd).not.toHaveClass('env-cell-flash');
       expect(alphaOnlyClientTd).not.toHaveAttribute('data-flashing');
 
-      // Clicking Dismiss notification clears the toast (F-08)
+      // Clicking Dismiss notification clears the toast
       fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification' }));
       expect(screen.queryByRole('status')).not.toBeInTheDocument();
 
-      // Verify prefers-reduced-motion rule exists in styles.css (§7.5)
+      // Verify prefers-reduced-motion rule exists in styles.css
       const cssContent = readFileSync(
         resolve(process.cwd(), 'src/ui/styles.css'),
         'utf8',
@@ -485,7 +500,7 @@ describe('M3.2 Selection and dependency auto-select', () => {
     }
   });
 
-  it('recovers from an API error during version override, resets isRecomputing, and clears the error alert on a subsequent successful version override (F-02, F-05)', async () => {
+  it('recovers from an API error during version override, resets isRecomputing, and clears the error alert on a subsequent successful version override', async () => {
     const client = buildM32FakeClient();
     await renderAndLoadM32Collection(client);
 
@@ -540,7 +555,7 @@ describe('M3.2 Selection and dependency auto-select', () => {
     ).toBe('Auto-deselected 2 server dependencies');
   });
 
-  it('re-resolves immediately on target change when selection matches default, and prompts with ConfirmReResolveDialog when selection differs from default (§7.3, F-01, F-06, F-08)', async () => {
+  it('re-resolves immediately on target change when selection matches default, and prompts with ConfirmReResolveDialog when selection differs from default', async () => {
     const client = buildM32FakeClient();
     await renderAndLoadM32Collection(client);
 
@@ -571,8 +586,8 @@ describe('M3.2 Selection and dependency auto-select', () => {
     expect(betaClientCb).not.toBeChecked();
 
     // 3. Edit collectionInput without submitting, then change Platform to 'neoforge':
-    //    ConfirmReResolveDialog opens, Cancel button receives initial focus (F-06),
-    //    and collectionInput is synced/reverted to the loaded collection ('col-m32') (F-01)
+    //    ConfirmReResolveDialog opens, Cancel button receives initial focus,
+    //    and collectionInput is synced/reverted to the loaded collection ('col-m32')
     fireEvent.change(collectionInput, { target: { value: 'unsubmitted-other-col' } });
     fireEvent.change(platformSelect, { target: { value: 'neoforge' } });
 
@@ -593,7 +608,7 @@ describe('M3.2 Selection and dependency auto-select', () => {
     expect(screen.getByLabelText('Select Beta Mod for Client')).not.toBeChecked();
 
     // 5. Toggling "Prefer stable releases over newest alpha/beta" opens ConfirmReResolveDialog,
-    //    and pressing Escape closes the dialog and reverts the checkbox (F-06, F-08)
+    //    and pressing Escape closes the dialog and reverts the checkbox
     fireEvent.click(preferStableCheckbox);
     expect(preferStableCheckbox).not.toBeChecked();
 
@@ -605,7 +620,7 @@ describe('M3.2 Selection and dependency auto-select', () => {
     expect(preferStableCheckbox).toBeChecked();
 
     // 6. Submitting a different collectionInput while selections are modified opens the dialog,
-    //    and cancelling reverts collectionInput back to 'col-m32' (F-01)
+    //    and cancelling reverts collectionInput back to 'col-m32'
     fireEvent.change(collectionInput, { target: { value: 'other-collection' } });
     fireEvent.click(screen.getByRole('button', { name: 'Load collection' }));
 

@@ -1,20 +1,26 @@
 import type { EnvironmentId } from '../../core';
 
+/** Active state for each environment review column (`client` and `server`). */
 export type ActiveEnvironments = Record<EnvironmentId, boolean>;
 
+/** Props for {@link EnvironmentTogglesBar}. */
 export interface EnvironmentTogglesBarProps {
   activeEnvironments: ActiveEnvironments;
   onToggleEnvironment: (env: EnvironmentId, active: boolean) => void;
   disabled?: boolean;
 }
 
+/**
+ * Toolbar controlling active Client and Server review lanes. Both default to off,
+ * gating interactivity, status evaluation, and environment zip exports.
+ */
 export function EnvironmentTogglesBar({
   activeEnvironments,
   onToggleEnvironment,
   disabled = false,
 }: EnvironmentTogglesBarProps) {
   return (
-    <section className="env-toggles-bar card" aria-label="Environment toggles">
+    <section className="env-toggles-bar" aria-label="Environment toggles">
       <div className="env-toggles-info">
         <h3>Target Environments</h3>
         <p>

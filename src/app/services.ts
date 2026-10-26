@@ -7,17 +7,20 @@ import {
   type HttpModrinthClientOptions,
 } from '../adapters';
 
+/** Service container providing access to external ports: Modrinth client, file fetcher, and archive writer. */
 export interface AppServices {
   modrinthClient: ModrinthClient;
   fileFetcher: FileFetcher;
   archiveWriter: ArchiveWriter;
 }
 
+/** Options for customizing adapter instances within the service container. */
 export interface CreateAppServicesOptions {
   modrinth?: HttpModrinthClientOptions;
   fetch?: FileFetcherOptions;
 }
 
+/** Factory function creating a new AppServices container initialized with production adapters. */
 export function createAppServices(options: CreateAppServicesOptions = {}): AppServices {
   return {
     modrinthClient: createModrinthClient(options.modrinth),
@@ -26,4 +29,6 @@ export function createAppServices(options: CreateAppServicesOptions = {}): AppSe
   };
 }
 
+/** Default singleton AppServices instance for the application. */
 export const services: AppServices = createAppServices();
+

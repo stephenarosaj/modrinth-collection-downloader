@@ -9,6 +9,7 @@ import {
   throwIfAborted,
 } from '../http-retry';
 
+/** Configuration options for HttpFileFetcher. */
 export interface FileFetcherOptions {
   fetchImpl?: typeof fetch;
   maxRetries?: number;
@@ -16,6 +17,7 @@ export interface FileFetcherOptions {
   sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
 }
 
+/** Error thrown when a binary file fetch fails, preserving the target URL and HTTP status code if available. */
 export class FileFetchError extends Error {
   public readonly url: string;
   public readonly status?: number;
@@ -28,6 +30,10 @@ export class FileFetchError extends Error {
   }
 }
 
+/**
+ * FileFetcher adapter that downloads binary files via HTTP.
+ * Retries on 429 and 5xx responses with exponential backoff and respects AbortSignal cancellation.
+ */
 export class HttpFileFetcher implements FileFetcher {
   private readonly fetchImpl: typeof fetch;
   private readonly maxRetries: number;
@@ -97,6 +103,7 @@ export class HttpFileFetcher implements FileFetcher {
   }
 }
 
+/** Factory function creating a new HttpFileFetcher instance. */
 export function createFileFetcher(opts?: FileFetcherOptions): FileFetcher {
   return new HttpFileFetcher(opts);
 }

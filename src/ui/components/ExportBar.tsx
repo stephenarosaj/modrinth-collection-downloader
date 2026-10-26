@@ -1,7 +1,12 @@
-import type { EnvironmentId, FileTree, MrpackIndex } from '../../core';
+import { useEffect, useState } from 'react';
+import { CORE_SCHEMA_VERSION, type EnvironmentId, type FileTree, type MrpackIndex } from '../../core';
 import type { ExportEnvironmentZipResult, ZipExportProgress } from '../download';
 import type { ActiveEnvironments } from './EnvironmentTogglesBar';
 
+/** Supported `instance.json` schema versions available for export. */
+export const SUPPORTED_SCHEMA_VERSIONS: readonly number[] = [CORE_SCHEMA_VERSION];
+
+/** Props for {@link ExportBar}. */
 export interface ExportBarProps {
   activeEnvironments: ActiveEnvironments;
   fileTrees: { client: FileTree; server: FileTree };
@@ -16,9 +21,10 @@ export interface ExportBarProps {
   exportingEnv: EnvironmentId | null;
   zipProgress: ZipExportProgress | null;
   zipResult: ExportEnvironmentZipResult | null;
+  supportedSchemaVersions?: readonly number[];
   onExportEnvironmentZip: (env: EnvironmentId) => void;
   onCancelZipExport: () => void;
-  onExportJson: () => void;
+  onExportJson: (schemaVersion?: number) => void;
   onExportMrpack: () => void;
 }
 
@@ -38,6 +44,10 @@ function computeProgressPercent(progress: ZipExportProgress | null): number {
   return Math.round((progress.completed / progress.total) * 80);
 }
 
+/**
+ * Action bar providing export triggers for client.zip, server.zip, instance.json,
+ * and Modrinth .mrpack modpacks, with in-flight download progress indicators and retry controls.
+ */
 export function ExportBar({
   activeEnvironments,
   fileTrees,
@@ -52,11 +62,30 @@ export function ExportBar({
   exportingEnv,
   zipProgress,
   zipResult,
+  supportedSchemaVersions = SUPPORTED_SCHEMA_VERSIONS,
   onExportEnvironmentZip,
   onCancelZipExport,
   onExportJson,
   onExportMrpack,
 }: ExportBarProps) {
+  const [showSchemaToast, setShowSchemaToast] = useState(false);
+  const hasMultipleSchemas = supportedSchemaVersions.length > 1;
+
+  useEffect(() => {
+    if (!showSchemaToast) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowSchemaToast(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showSchemaToast]);
+
   const clientFileCount = fileTrees.client.files.length;
   const serverFileCount = fileTrees.server.files.length;
   const mrpackFileCount = mrpackPreview.files.length;
@@ -87,8 +116,16 @@ export function ExportBar({
           : 'client'))
       : null;
 
+  const handleClickExportJson = () => {
+    if (hasMultipleSchemas) {
+      setShowSchemaToast((prev) => !prev);
+      return;
+    }
+    onExportJson(supportedSchemaVersions[0] ?? CORE_SCHEMA_VERSION);
+  };
+
   return (
-    <section className="card export-bar" aria-label="Export outputs">
+    <section className="export-bar" aria-label="Export outputs">
       <div className="export-bar-row">
         <div className="export-group" role="group" aria-label="Archive and JSON exports">
           <button
@@ -113,14 +150,52 @@ export function ExportBar({
             <span className="badge export-count-badge">({serverFileCount})</span>
           </button>
 
-          <button
-            type="button"
-            className="btn btn-secondary"
-            disabled={isExporting || isRecomputing}
-            onClick={onExportJson}
-          >
-            Export instance.json
-          </button>
+          <div className="export-json-wrapper">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={isExporting || isRecomputing}
+              aria-expanded={hasMultipleSchemas ? showSchemaToast : undefined}
+              onClick={handleClickExportJson}
+            >
+              Export instance.json
+            </button>
+            {hasMultipleSchemas && showSchemaToast && (
+              <div
+                className="schema-version-toast status-tooltip-card"
+                role="region"
+                aria-label="Select instance.json schema version"
+                data-testid="schema-version-toast"
+              >
+                <div className="status-tooltip-card-header">
+                  <span className="status-tooltip-env-badge">Schema Version</span>
+                  <button
+                    type="button"
+                    className="btn-toast-dismiss"
+                    aria-label="Close schema version selector"
+                    onClick={() => setShowSchemaToast(false)}
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="schema-version-options">
+                  {supportedSchemaVersions.map((ver) => (
+                    <button
+                      key={ver}
+                      type="button"
+                      className="btn btn-secondary schema-version-option-btn"
+                      onClick={() => {
+                        setShowSchemaToast(false);
+                        onExportJson(ver);
+                      }}
+                    >
+                      {`Schema v${ver}`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="export-mrpack-group" role="group" aria-label="Modrinth modpack export">

@@ -1,4 +1,4 @@
-// Port interfaces for external boundaries: ModrinthClient, FileFetcher, ArchiveWriter (§5.2).
+// Port interfaces for external boundaries: ModrinthClient, FileFetcher, ArchiveWriter.
 
 import type {
   EnvironmentId,
@@ -9,16 +9,19 @@ import type {
   VersionType,
 } from '../core/model';
 
+/** Standard options for port operations supporting cancellation via AbortSignal. */
 export interface RequestOptions {
   signal?: AbortSignal;
 }
 
+/** Normalized Modrinth collection metadata containing its ID, display name, and member project IDs. */
 export interface CollectionInfo {
   id: string;
   name: string;
   projectIds: string[];
 }
 
+/** Normalized project metadata representing a Modrinth project and its client/server environment support. */
 export interface ProjectInfo {
   id: string;
   slug: string;
@@ -28,10 +31,12 @@ export interface ProjectInfo {
   support: Record<EnvironmentId, Support>;
 }
 
+/** Metadata describing a downloadable version file attachment, extending FileRef with primary designation. */
 export interface VersionFileInfo extends FileRef {
   primary?: boolean;
 }
 
+/** Normalized version details for a project, including compatibility targets, files, and dependencies. */
 export interface VersionInfo {
   id: string;
   projectId: string;
@@ -47,6 +52,7 @@ export interface VersionInfo {
   dependencies: VersionDependency[];
 }
 
+/** Metadata for a Minecraft game version tag returned by Modrinth. */
 export interface GameVersionInfo {
   version: string;
   versionType: 'release' | 'snapshot' | 'alpha' | 'beta' | (string & {});
@@ -54,17 +60,20 @@ export interface GameVersionInfo {
   major: boolean;
 }
 
+/** Metadata for a loader or platform tag (e.g. Fabric, Forge) supported by Modrinth. */
 export interface PlatformInfo {
   name: string;
   icon?: string;
   supportedProjectTypes: string[];
 }
 
+/** Query parameters filtering a project's versions by game version and platform. */
 export interface ProjectVersionsQuery {
   gameVersion: string;
   platform?: string;
 }
 
+/** Primary port interface for Modrinth API operations. All methods accept an optional AbortSignal. */
 export interface ModrinthClient {
   getCollection(id: string, opts?: RequestOptions): Promise<CollectionInfo>;
   getProjects(ids: string[], opts?: RequestOptions): Promise<ProjectInfo[]>;
@@ -78,15 +87,19 @@ export interface ModrinthClient {
   getPlatforms(opts?: RequestOptions): Promise<PlatformInfo[]>;
 }
 
+/** In-memory representation of a zip archive under construction. */
 export interface Archive {
   addFile(path: string, data: Uint8Array | string): void;
   generate(opts?: { onProgress?: (pct: number) => void }): Promise<Blob>;
 }
 
+/** Port interface for creating fresh zip archive instances. */
 export interface ArchiveWriter {
   create(): Archive;
 }
 
+/** Port interface for downloading binary files over the network. */
 export interface FileFetcher {
   fetchBinary(url: string, opts?: RequestOptions): Promise<Uint8Array>;
 }
+

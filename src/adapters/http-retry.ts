@@ -1,7 +1,9 @@
+/** Default fetch implementation delegating to global fetch, injectable for testing. */
 export function defaultFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   return globalThis.fetch(input, init);
 }
 
+/** Constructs an AbortError preserving any cancellation reason from the provided AbortSignal. */
 export function createAbortError(signal?: AbortSignal): Error {
   const reason: unknown = signal?.reason;
   if (reason instanceof Error) {
@@ -27,12 +29,14 @@ export function createAbortError(signal?: AbortSignal): Error {
   return err;
 }
 
+/** Throws an AbortError if the provided signal is in the aborted state. */
 export function throwIfAborted(signal?: AbortSignal): void {
   if (signal?.aborted) {
     throw createAbortError(signal);
   }
 }
 
+/** Determines whether an error or signal represents an aborted operation. */
 export function isAbortError(error: unknown, signal?: AbortSignal): boolean {
   if (signal?.aborted) {
     return true;
@@ -42,6 +46,7 @@ export function isAbortError(error: unknown, signal?: AbortSignal): boolean {
   );
 }
 
+/** Promise-based sleep timer that resolves after delay or rejects immediately on AbortSignal cancellation. */
 export function defaultSleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     if (signal?.aborted) {
@@ -66,10 +71,15 @@ export function defaultSleep(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
+/** Returns true for transient HTTP status codes eligible for retry (429 and 5xx). */
 export function isRetryableStatus(status: number): boolean {
   return status === 429 || (status >= 500 && status < 600);
 }
 
+/**
+ * Calculates retry delay in milliseconds from Retry-After or X-Ratelimit-Reset headers,
+ * falling back to exponential backoff based on attempt number and base delay.
+ */
 export function parseRetryDelayMs(
   headers: Headers,
   attempt: number,

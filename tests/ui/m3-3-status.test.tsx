@@ -270,8 +270,8 @@ function getEnvCell(projectId: string, env: 'client' | 'server'): HTMLElement {
   return cell!;
 }
 
-describe('M3.3 Status symbols, tooltips, highlights, and accessibility', () => {
-  it('gates status symbols, row tints, and cell rings by active environment toggles (§7.3.1)', async () => {
+describe('Status symbols, tooltips, highlights, and accessibility', () => {
+  it('gates status symbols, row tints, and cell rings by active environment toggles', async () => {
     const client = buildM33FakeClient();
     await renderAndLoadM33Collection(client);
 
@@ -330,12 +330,14 @@ describe('M3.3 Status symbols, tooltips, highlights, and accessibility', () => {
     );
 
     // 3. Turn on Server environment as well:
-    //    Missing Client Mod is missing in both Client and Server -> both cells get error rings and tooltip shows both
+    //    Missing Client Mod is required on Client (error ring) and optional on Server (warning ring), and tooltip shows both cards
     fireEvent.click(screen.getByLabelText('Server environment'));
 
     expect(getEnvCell('mod-missing-client', 'client')).toHaveClass('env-cell-ring-error');
-    expect(getEnvCell('mod-missing-client', 'server')).toHaveClass('env-cell-ring-error');
-    const missingTooltipText = within(missingRow).getByRole('tooltip').textContent;
+    expect(getEnvCell('mod-missing-client', 'server')).toHaveClass('env-cell-ring-warning');
+    const missingTooltip = within(missingRow).getByRole('tooltip');
+    expect(missingTooltip.querySelectorAll('.status-tooltip-card')).toHaveLength(2);
+    const missingTooltipText = missingTooltip.textContent;
     expect(missingTooltipText).toContain(
       'Client: No compatible version is available for this environment.',
     );
@@ -344,7 +346,7 @@ describe('M3.3 Status symbols, tooltips, highlights, and accessibility', () => {
     );
   });
 
-  it('renders distinct symbols, tooltips, row tints, and per-cell rings for all 8 Reasons and 4 Kinds, including dual dependency highlighting (§7.4, §7.5, §13 M3.3)', async () => {
+  it('renders distinct symbols, tooltips, row tints, and per-cell rings for all Reasons and Kinds, including dual dependency highlighting', async () => {
     const client = buildM33FakeClient();
     await renderAndLoadM33Collection(client);
 
@@ -352,15 +354,16 @@ describe('M3.3 Status symbols, tooltips, highlights, and accessibility', () => {
     fireEvent.click(screen.getByLabelText('Client environment'));
     fireEvent.click(screen.getByLabelText('Server environment'));
 
-    // --- 1. OK (`ok`) ---
+    // --- 1. OK (`ok`) — no tooltip rendered ---
     const okRow = getRow('mod-ok');
     expect(okRow).toHaveAttribute('data-row-status', 'ok');
     expect(okRow).not.toHaveClass('row-tint');
     const okBtn = within(okRow).getByRole('button', { name: /Clean Mod status: OK/i });
     expect(okBtn).toHaveAttribute('data-status-kind', 'ok');
     expect(okBtn).toHaveAttribute('data-status-symbol', '✓');
+    expect(okBtn).not.toHaveAttribute('aria-describedby');
     expect(okBtn).toHaveClass('status-symbol-ok', 'status-shape-circle');
-    expect(within(okRow).getByRole('tooltip')).toHaveTextContent('OK');
+    expect(within(okRow).queryByRole('tooltip')).toBeNull();
     expect(getEnvCell('mod-ok', 'client')).not.toHaveClass('env-cell-ring');
     expect(getEnvCell('mod-ok', 'server')).not.toHaveClass('env-cell-ring');
 
@@ -372,7 +375,7 @@ describe('M3.3 Status symbols, tooltips, highlights, and accessibility', () => {
       name: /Missing Client Mod status: Error/i,
     });
     expect(missingBtn).toHaveAttribute('data-status-kind', 'error');
-    expect(missingBtn).toHaveAttribute('data-status-symbol', '⚠!');
+    expect(missingBtn).toHaveAttribute('data-status-symbol', '!');
     expect(missingBtn).toHaveAttribute('data-status-reasons', 'NO_COMPATIBLE_VERSION');
     expect(missingBtn).toHaveClass('status-symbol-error', 'status-shape-error-triangle');
 
@@ -517,6 +520,34 @@ describe('M3.3 Status symbols, tooltips, highlights, and accessibility', () => {
     );
     expect(getEnvCell('dep-selectable', 'server')).not.toHaveClass('env-cell-ring');
 
+    // Dual highlighting on the requiring parent Mod (M): Clean Mod turns yellow with DEPENDENCY_NOT_SELECTED
+    expect(okRow).toHaveAttribute('data-row-status', 'warning');
+    expect(okRow).toHaveClass('row-tint', 'row-tint-warning');
+    const cleanModWarnBtn = within(okRow).getByRole('button', {
+      name: /Clean Mod status: Warning/i,
+    });
+    expect(cleanModWarnBtn).toHaveAttribute('data-status-kind', 'warning');
+    expect(cleanModWarnBtn).toHaveAttribute('data-status-reasons', 'DEPENDENCY_NOT_SELECTED');
+    expect(within(okRow).getByRole('tooltip')).toHaveTextContent(
+      'Client: A required dependency is not selected in this environment.',
+    );
+    expect(getEnvCell('mod-ok', 'client')).toHaveAttribute(
+      'data-cell-reasons',
+      'DEPENDENCY_NOT_SELECTED',
+    );
+    expect(getEnvCell('mod-ok', 'client')).toHaveClass('env-cell-ring', 'env-cell-ring-warning');
+    const cleanModClientRequires = screen.getByTestId('requires-list-mod-ok');
+    const coreLibClientChip = within(cleanModClientRequires).getByRole('button', {
+      name: /Core Lib/i,
+    });
+    expect(coreLibClientChip).toHaveAttribute('data-chip-status', 'warning');
+    expect(coreLibClientChip).toHaveClass('dep-link-chip-warning');
+    const cleanModServerRequires = screen.getByTestId('requires-list-mod-ok-server');
+    const coreLibServerChip = within(cleanModServerRequires).getByRole('button', {
+      name: /Core Lib/i,
+    });
+    expect(coreLibServerChip).toHaveAttribute('data-chip-status', 'default');
+
     // --- 9. REQUIRED_NOT_SELECTED (`warning`) ---
     // Explicitly deselect Clean Mod on Client (support === 'required')
     const cleanModClientCb = screen.getByLabelText('Select Clean Mod for Client');
@@ -574,22 +605,31 @@ describe('M3.3 Status symbols, tooltips, highlights, and accessibility', () => {
     fireEvent.click(screen.getByLabelText('Client environment'));
     fireEvent.click(screen.getByLabelText('Server environment'));
 
-    // Verify keyboard focus and aria-describedby -> role="tooltip" linkage
+    // Verify keyboard focus and aria-describedby -> role="tooltip" linkage (for non-OK status buttons; OK buttons omit redundant tooltips)
     const statusButtons = screen.getAllByRole('button', { name: /status:/i });
     expect(statusButtons.length).toBeGreaterThan(0);
+
+    const nonOkButtons = statusButtons.filter(
+      (btn) => btn.getAttribute('data-status-kind') !== 'ok',
+    );
+    expect(nonOkButtons.length).toBeGreaterThan(0);
 
     for (const btn of statusButtons) {
       btn.focus();
       expect(btn).toHaveFocus();
       const describedById = btn.getAttribute('aria-describedby');
-      expect(describedById).toBeTruthy();
-      const tooltipEl = document.getElementById(describedById!);
-      expect(tooltipEl).toBeTruthy();
-      expect(tooltipEl).toHaveAttribute('role', 'tooltip');
+      if (btn.getAttribute('data-status-kind') === 'ok') {
+        expect(describedById).toBeNull();
+      } else {
+        expect(describedById).toBeTruthy();
+        const tooltipEl = document.getElementById(describedById!);
+        expect(tooltipEl).toBeTruthy();
+        expect(tooltipEl).toHaveAttribute('role', 'tooltip');
+      }
     }
 
     // Verify WCAG 2.1 SC 1.4.13 Escape dismissal and focus/blur reset on status tooltips
-    const firstBtn = statusButtons[0]!;
+    const firstBtn = nonOkButtons[0]!;
     firstBtn.focus();
     const firstTooltip = document.getElementById(firstBtn.getAttribute('aria-describedby')!)!;
     expect(firstTooltip).not.toHaveClass('status-tooltip-dismissed');
@@ -601,6 +641,89 @@ describe('M3.3 Status symbols, tooltips, highlights, and accessibility', () => {
     expect(firstTooltip).toHaveClass('status-tooltip-dismissed');
     fireEvent.focus(firstBtn);
     expect(firstTooltip).not.toHaveClass('status-tooltip-dismissed');
+
+    // Verify interactive dependency chips (requires: & required by:) hover cross-highlighting & isolate tree button
+    const requiresList = screen.getByTestId('requires-list-mod-needs-server-unavail');
+    const requiresChip = within(requiresList).getByRole('button', {
+      name: /Client Render Lib/i,
+    });
+    // On Client, Client Render Lib is OK ('default' tone); on Server, it is NEEDED_BUT_UNAVAILABLE ('error' tone)
+    expect(requiresChip).toHaveAttribute('data-chip-status', 'default');
+    const serverRequiresList = screen.getByTestId('requires-list-mod-needs-server-unavail-server');
+    const serverRequiresChip = within(serverRequiresList).getByRole('button', {
+      name: /Client Render Lib/i,
+    });
+    expect(serverRequiresChip).toHaveAttribute('data-chip-status', 'error');
+    expect(serverRequiresChip).toHaveClass('dep-link-chip-error');
+
+    // On Client, Pinned Lib has PIN_CONFLICT ('warning' tone)
+    const pinAClientRequires = screen.getByTestId('requires-list-mod-pin-a');
+    const pinnedLibClientChip = within(pinAClientRequires).getByRole('button', {
+      name: /Pinned Lib/i,
+    });
+    expect(pinnedLibClientChip).toHaveAttribute('data-chip-status', 'warning');
+    expect(pinnedLibClientChip).toHaveClass('dep-link-chip-warning');
+
+    fireEvent.mouseEnter(requiresChip);
+    expect(getRow('mod-needs-server-unavail')).toHaveAttribute('data-link-highlighted', 'true');
+    expect(getRow('dep-client-only')).toHaveAttribute('data-link-highlighted', 'true');
+    fireEvent.mouseLeave(requiresChip);
+    expect(getRow('mod-needs-server-unavail')).not.toHaveAttribute('data-link-highlighted');
+
+    // Clicking a listed dependency chip isolates rather than scrolling, and keeps the clicked symbol highlighted solid
+    fireEvent.click(requiresChip);
+    expect(screen.getByText('Client Render Lib')).toBeInTheDocument();
+    expect(screen.getByText('Server Bridged Mod')).toBeInTheDocument();
+    expect(screen.queryByText('Clean Mod')).not.toBeInTheDocument();
+    const isolatedRequiresChip = within(
+      screen.getByTestId('requires-list-mod-needs-server-unavail'),
+    ).getByRole('button', {
+      name: /Client Render Lib/i,
+    });
+    expect(isolatedRequiresChip).toHaveClass('dep-link-chip-isolated');
+    expect(isolatedRequiresChip).toHaveAttribute('data-chip-isolated', 'true');
+    expect(isolatedRequiresChip).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Clear isolated project filter' }));
+    expect(screen.getByText('Clean Mod')).toBeInTheDocument();
+
+    // Verify unknown support badge tooltip in the environment cell matches the leftmost row-level unknown status tooltip
+    const unknownClientCell = getEnvCell('mod-unknown', 'client');
+    const unknownBadgeTooltip = unknownClientCell.querySelector('.meta-badge-tooltip');
+    expect(unknownBadgeTooltip).toHaveTextContent('Unknown Support');
+    expect(unknownBadgeTooltip).toHaveTextContent('Environment support is unknown on Modrinth.');
+
+    // Isolate a mod and its dependencies
+    const isolateModBtn = screen.getByTestId('focus-tree-mod-ok');
+    fireEvent.click(isolateModBtn);
+    expect(screen.getByText('Clean Mod')).toBeInTheDocument();
+    expect(screen.getByText('Core Lib')).toBeInTheDocument();
+    expect(screen.queryByText('Missing Client Mod')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('focus-tree-mod-ok'));
+    expect(screen.getByText('Missing Client Mod')).toBeInTheDocument();
+
+    // Isolate a dependency and its dependents
+    const isolateDepBtn = screen.getByTestId('focus-tree-dep-client-only');
+    fireEvent.click(isolateDepBtn);
+    expect(screen.getByText('Client Render Lib')).toBeInTheDocument();
+    expect(screen.getByText('Server Bridged Mod')).toBeInTheDocument();
+    expect(screen.queryByText('Clean Mod')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear isolated project filter' }));
+    expect(screen.getByText('Clean Mod')).toBeInTheDocument();
+
+    // Verify table filter bar (search + status filter pills + empty filter state)
+    const searchInput = screen.getByLabelText('Filter projects by name');
+    fireEvent.change(searchInput, { target: { value: 'Clean Mod' } });
+    expect(screen.queryByText('Missing Client Mod')).not.toBeInTheDocument();
+    expect(screen.getByText('Clean Mod')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear search filter' }));
+    expect(screen.getByText('Missing Client Mod')).toBeInTheDocument();
+
+    const filterGroup = screen.getByRole('group', { name: 'Filter by status' });
+    fireEvent.click(within(filterGroup).getByRole('button', { name: /Errors/i }));
+    expect(screen.queryByText('Clean Mod')).not.toBeInTheDocument();
+    expect(screen.getByText('Missing Client Mod')).toBeInTheDocument();
+    fireEvent.click(within(filterGroup).getByRole('button', { name: /All/i }));
+    expect(screen.getByText('Clean Mod')).toBeInTheDocument();
 
     // Run axe-core on the full review screen with active environments, status symbols, tooltips, tints, and rings
     const originalGetContext = HTMLCanvasElement.prototype.getContext;

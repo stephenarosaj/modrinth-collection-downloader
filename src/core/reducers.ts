@@ -1,4 +1,6 @@
-// Pure selection reducers and helpers (§6.1, §7.3).
+/**
+ * Pure selection reducers and helpers.
+ */
 
 import {
   ENVIRONMENTS,
@@ -15,6 +17,7 @@ import {
 } from './model';
 import { applyInitialSelection, recomputeDependencyClosure } from './resolver';
 
+/** Checkbox tri-state for table header controls. */
 export type HeaderTriState = 'checked' | 'indeterminate' | 'unchecked';
 
 function cloneSelection(selection: Selection): Selection {
@@ -194,7 +197,7 @@ function autoDeselectOrphanedDependencies(
 }
 
 /**
- * Computes the default initial selection state (§7.3):
+ * Computes the default initial selection state:
  * - Every collection entry is `{ on: true, source: 'user' }` in every environment where it is selectable,
  *   or `{ on: false, source: 'none' }` where not selectable.
  * - Every dependency entry is `{ on: true, source: 'auto' }` in an environment iff it is selectable there
@@ -211,7 +214,7 @@ export function computeInitialSelection(input: Instance | readonly Entry[]): Ins
 }
 
 /**
- * Pure reducer applying selection and version override actions to an Instance (§6.1, §7.3).
+ * Pure reducer applying selection and version override actions to an Instance.
  */
 export function reduceInstance(instance: Instance, action: Action): ReducerResult {
   switch (action.type) {
@@ -342,6 +345,7 @@ export function reduceInstance(instance: Instance, action: Action): ReducerResul
   }
 }
 
+/** Selects an entry in an environment as a user action, auto-selecting required dependencies. */
 export function selectEntry(
   instance: Instance,
   projectId: string,
@@ -350,6 +354,7 @@ export function selectEntry(
   return reduceInstance(instance, { type: 'select', projectId, env });
 }
 
+/** Deselects an entry in an environment as a user action, auto-deselecting orphaned dependencies. */
 export function deselectEntry(
   instance: Instance,
   projectId: string,
@@ -358,6 +363,7 @@ export function deselectEntry(
   return reduceInstance(instance, { type: 'deselect', projectId, env });
 }
 
+/** Selects all selectable collection entries in a project type table for an environment. */
 export function selectAllInTable(
   instance: Instance,
   projectType: ProjectType,
@@ -366,6 +372,7 @@ export function selectAllInTable(
   return reduceInstance(instance, { type: 'select-all', projectType, env });
 }
 
+/** Deselects all selectable collection entries in a project type table for an environment. */
 export function deselectAllInTable(
   instance: Instance,
   projectType: ProjectType,
@@ -374,6 +381,7 @@ export function deselectAllInTable(
   return reduceInstance(instance, { type: 'deselect-all', projectType, env });
 }
 
+/** Overrides an entry's chosen version candidate in an environment. */
 export function setEntryVersion(
   instance: Instance,
   projectId: string,
@@ -383,12 +391,13 @@ export function setEntryVersion(
   return reduceInstance(instance, { type: 'set-version', projectId, env, versionId });
 }
 
+/** Resets all entry selections in the instance back to default initial selection. */
 export function resetInstanceSelection(instance: Instance): ReducerResult {
   return reduceInstance(instance, { type: 'reset-selection' });
 }
 
 /**
- * Computes the header select-all tri-state from a sequence of environment states (§7.3).
+ * Computes the header select-all tri-state from a sequence of environment states.
  * Inspects selectable states only.
  */
 export function computeHeaderTriState(
@@ -415,7 +424,7 @@ export function computeHeaderTriState(
 }
 
 /**
- * Computes the header select-all tri-state for a project type table in `env` (§7.3).
+ * Computes the header select-all tri-state for a project type table in `env`.
  * Inspects selectable collection rows only.
  */
 export function getHeaderTriState(
@@ -432,7 +441,7 @@ export function getHeaderTriState(
 
 /**
  * Returns true if any entry's selection (`on` or `source`)
- * differs from the default initial selection state (§7.3).
+ * differs from the default initial selection state.
  */
 export function hasSelectionChangedFromDefault(instance: Instance): boolean {
   const defaultInstance = computeInitialSelection(instance);
