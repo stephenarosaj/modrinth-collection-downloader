@@ -11,7 +11,7 @@ export interface EnvironmentTogglesBarProps {
 }
 
 /**
- * Toolbar controlling active Client and Server review lanes. Both default to off,
+ * Toolbar controlling active Client and Server review. Both default to off,
  * gating interactivity, status evaluation, and environment zip exports.
  */
 export function EnvironmentTogglesBar({

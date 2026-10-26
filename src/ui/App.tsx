@@ -112,7 +112,7 @@ async function readFileText(file: File): Promise<string> {
  * Root React application component.
  *
  * Manages collection target configuration, resolution pipelines, the loaded
- * immutable {@link Instance}, environment toggle lanes (defaulting to off),
+ * immutable {@link Instance}, environment toggle (defaulting to off),
  * and export actions for zips, `.mrpack`, and `instance.json`.
  */
 export function App({

@@ -36,7 +36,7 @@ All three outputs and the review tables are views of one data structure, the **I
 | **Dependency entry** | An entry whose project is required by another entry's chosen version. |
 | **Instance** | The full model: target + registry of entries (§6). |
 
-Each environment is a fully independent lane: own support value, own resolved version, own selection, own dependencies, own status. Both lanes follow identical rules.
+Each environment is fully independent: own support value, own resolved version, own selection, own dependencies, own status. Both environments follow identical rules.
 
 ## 4. Scope
 

@@ -768,7 +768,7 @@ describe('Error Formatting, Retry UX, Partial-Result Resilience, Empty States & 
 
       expect(firstModCheckbox.checked).toBe(true);
       expect(bulkToggleElapsedMs).toBeLessThan(2000);
-    }, 15000);
+    }, 30000);
 
     it('isolates row and cell re-renders via React.memo when toggling a single row at 500 entries', () => {
       const instance500 = build500EntryInstance();

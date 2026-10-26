@@ -19,9 +19,9 @@ Use these exact terms across code identifiers, UI labels, comments, and docs:
 
 ---
 
-## 2. Independent Environment Lanes
+## 2. Independent Environment Environments
 
-Every `Entry` contains two independent `EnvironmentState` lanes (`environments.client` and `environments.server`). Each lane has its own:
+Every `Entry` contains two independent `EnvironmentState` environments (`environments.client` and `environments.server`). Each environment has its own:
 - `support`: `'required' | 'optional' | 'unsupported' | 'unknown'`
 - `candidates`: `VersionRef[]` (compatible versions, preferred-first)
 - `version`: `VersionRef | null` (chosen version)

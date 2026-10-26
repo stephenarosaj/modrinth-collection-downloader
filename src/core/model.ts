@@ -142,7 +142,7 @@ export const RESOLUTIONS: readonly Resolution[] = [
   'none',
 ] as const;
 
-/** Resolution and selection state for a single environment lane (client or server). */
+/** Resolution and selection state for a single environment (client or server). */
 export interface EnvironmentState {
   support: Support;
   /** Compatible versions, preferred first. */

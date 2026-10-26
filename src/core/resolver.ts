@@ -48,7 +48,7 @@ export interface ResolveVersionInput {
   pinnedVersions?: readonly (VersionInfo | VersionRef)[];
 }
 
-/** Output of version resolution for a single environment lane. */
+/** Output of version resolution for a single environment. */
 export interface ResolvedEnvironmentVersion {
   candidates: VersionRef[];
   version: VersionRef | null;

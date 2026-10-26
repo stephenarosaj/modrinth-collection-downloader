@@ -1,87 +1,108 @@
-# Modrinth Collection Downloader (`modrinth-collection-downloader`)
+# Modrinth Collection Downloader
 
-A 100% client-side web app for resolving a Modrinth collection against a target **Game Version** and **Platform**, customizing independent **Client** and **Server** **Environments**, and exporting the result as `.zip` archives, portable `instance.json` snapshots, or Modrinth `.mrpack` modpacks.
+A 100% client-side web app to resolve Modrinth collections, manage independent **Client** and **Server** environments, and export ready-to-run Minecraft instances.
 
-Built as a standalone derivative of [**DanyCDev/modrinth-collection-web-download**](https://github.com/DanyCDev/modrinth-collection-web-download) ([md.dkg.sk](https://md.dkg.sk/)), re-architected around a single immutable `Instance` model with per-environment dependency closure, status validation, and offline state restore.
+Supports:
+
+Modrinth collections are great for sharing lists of projects, but turning them into playable setups can be painful. This app solves those problems in your browser:
+
+1. **Download All Projects at Once:** Instantly download all projects (mods, plugins, datapacks, resource packs, and shaders) listed in a collection.
+2. **True Dual-Environment Support:** Client and server have separate mod lists, versions, and dependencies.
+3. **Transitive Dependency Closure:** Automatic detection and fetching of required dependencies with cycle protection.
+4. **Smart Conflict Detection:** Visible status badges for missing versions, unverified platforms, and version pin conflicts.
+5. **Offline Re-import:** A portable `instance.json` format to save and restore complete workspace configurations without downloading.
+
+This app solves those problems in your browser: paste a collection link, pick a Minecraft version and platform, customize client and server environments independently, and export clean `.zip` archives, a Modrinth `.mrpack`, or an offline snapshot.
 
 ---
 
-## User Guide
+## How It Came to Be
 
-### 1. Load a Collection or Import `instance.json`
+This project started as a standalone derivative of [**DanyCDev/modrinth-collection-web-download**](https://github.com/DanyCDev/modrinth-collection-web-download) ([md.dkg.sk](https://md.dkg.sk/)) by Daniel.
 
-![Target Form and Getting Started Empty State](docs/screenshots/01-target-form-and-empty-state.svg)
+Brainstormed and planned with Claude Sonnet 5.5, and implemented and refined with Gemini 4 Argon in Antigravity.
 
-- **Collection URL or ID:** Paste a full URL (`https://modrinth.com/collection/<id>`) or bare collection ID.
-- **Game Version & Platform:** Populated from Modrinth release tags. `mod` and `plugin` entries match both **Game Version** and **Platform**; `datapack`, `resourcepack`, and `shader` entries match **Game Version** only.
-- **Release Preference:** **Stable** (default) prefers `release` versions over `beta`/`alpha`; uncheck to pick the newest version by `publishedAt` regardless of channel.
-- **Progress, Cancel & Retry:** Resolution streams step counts and logs with an active **Cancel** button. Transient `429`/`5xx` errors auto-retry with backoff; if a single project fetch fails, the rest of the collection still resolves and failed projects are listed under **Skipped Projects**.
-- **Offline Restore (`Import instance.json`):** Restores a previously exported `<collectionId>-instance.json` workspace immediately with **zero network requests**.
+---
+
+## Visual User Guide
+
+### 1. Load Collection or Import Snapshot
+
+![Step 1: Target Form and Empty State](docs/screenshots/01-target-form-and-empty-state.png)
+
+- **Collection URL or ID:** Paste any Modrinth collection link or bare ID.
+- **Game Version & Platform:** Filtered to stable releases. Mods and plugins match platform; datapacks, resource packs, and shaders match game version only.
+- **Release Preference:** Default **Stable** prefers release versions; uncheck to pick newest alpha/beta.
+- **Offline Import:** Click **Import instance.json** to restore any saved workspace instantly with zero network requests.
 
 ---
 
 ### 2. Unlock Environments & Review Tables
 
-![Review Tables, Environment Toggles, and Status Symbols](docs/screenshots/02-review-tables-and-statuses.svg)
+![Step 2: Review Tables and Statuses](docs/screenshots/02-review-tables-and-statuses.png)
 
-- **Client & Server Toggles Start Off:** Both top-level **Environment** toggles default to **off** (locked) on load or import. While off, a column displays its resolved versions and selections grayed out, disables edits and `.zip` export, and suppresses status warnings for that environment. Turning a toggle on unlocks the column without altering underlying selections.
-- **Per-Type Tables:** Projects are grouped into **Mods**, **Plugins**, **Datapacks**, **Resource Packs**, and **Shaders**. Required transitive dependencies appear in each table's **Dependencies** footer with `required by: <Project> (<env>)` attribution.
-- **Environment Cells:** Each cell shows its selection checkbox, candidate version dropdown (`(beta)`, `(alpha)`, `[unverified platform]`), Modrinth support badge (`required`, `optional`, `unknown`, or `✗` for `unsupported`), and selection-source tag (`auto` or `user off`).
-- **Status Badges, Row Tints & Cell Rings:** The leftmost column shows the worst status across **active** environments (`!` red error, `⚠` amber warning, `?` purple unknown, `✓` green OK). Hovering or focusing a badge shows exact `Client:` / `Server:` reasons. Row background tints show the row's overall severity, while outline rings highlight the specific affected environment cell(s).
-
----
-
-### 3. Customize Selections & Override Versions
-
-![Environment Selection, Auto-Selected Dependency Highlight, and Toast](docs/screenshots/03-selection-and-auto-select-toast.svg)
-
-- **Auto-Select & Auto-Deselect:** Checking an entry automatically selects (`auto`) its transitive required dependencies in that environment; unchecking it auto-deselects `auto` dependencies no longer needed by any selected entry. Auto-changed cells flash for 1 second alongside a summary toast.
-- **Sticky User Overrides:**
-  - **User-off stays off:** Manually unchecking a dependency marks it `user off`—subsequent selections or **Select All** will never re-enable it automatically (surfacing an amber warning instead).
-  - **User-on stays on:** Manually checking a dependency keeps it selected even if its parent entry is later unchecked.
-- **Version Dropdown Override:** Switching a cell's version sets its resolution to `user` and recomputes the dependency closure for that environment only.
-- **Target Change Confirmation:** Changing **Game Version**, **Platform**, or **Release Preference** after editing selections prompts before re-resolving and resetting selections to defaults.
+- **Client & Server Toggles:** Start locked (`off`) by default to prevent accidental edits. Turn on the environment(s) you want to build.
+- **Per-Type Tables:** Organized into **Mods**, **Plugins**, **Datapacks**, **Resource Packs**, and **Shaders**.
+- **Status Indicators:** Red `!` (errors), amber `⚠` (warnings), purple `?` (unknown support), green `✓` (ready). Tooltips explain exact causes per environment.
+- **Dependencies Footer:** Transitive dependencies appear at the bottom of each table with `required by: ...` attribution.
 
 ---
 
-### 4. Export Archives & Portable Definitions
+### 3. Customize Selections & Versions
 
-![Export Bar, Outputs, and Download Progress](docs/screenshots/04-export-bar-and-outputs.svg)
+![Step 3: Selection, Auto-Select Toast, and Overrides](docs/screenshots/03-selection-and-auto-select-toast.png)
 
-- **`<collectionId>-instance.json`:** Lossless, schema-validated snapshot of the full `Instance` (selections, candidate pools, chosen versions, dependency graphs). Re-imports offline with zero network calls.
-- **`<collectionId>-client.zip` & `<collectionId>-server.zip`:** Enabled when the corresponding **Environment** toggle is on and ≥1 entry is selected. Fetches binaries on demand into `mods/`, `plugins/`, `datapacks/`, `resourcepacks/`, and `shaderpacks/` using `{Title}-{Platform}-{GameVersion}-{VersionNumber}.{ext}` naming. Supports live progress, **Cancel**, and partial-failure packaging (succeeded files still zip; failed files list a **Retry export** action).
-- **`<collectionId>.mrpack`:** Instant metadata-only Modrinth modpack (`modrinth.index.json`) referencing CDN URLs and `sha1`/`sha512` hashes. Supports an optional **Platform version** input (`fabric-loader`, `quilt-loader`, `forge`, `neoforge`), splits file entries when `client` and `server` use different versions, and warns when selected `plugin` entries are excluded.
+- **Automatic Dependency Selection:** Checking a mod auto-selects its required dependencies; unchecking auto-deselects them if unneeded.
+- **Sticky Overrides:**
+  - **User-off stays off:** Manually unchecking a dependency prevents auto-select from re-enabling it (triggers an amber warning instead).
+  - **User-on stays on:** Manually checking a dependency keeps it active even if its parent mod is removed.
+- **Version Override:** Switch candidate versions in any cell dropdown; dependency trees recompute automatically.
 
 ---
 
-## Quickstart & Deployment
+### 4. Export Outputs
+
+![Step 4: Export Bar and Downloads](docs/screenshots/04-export-bar-and-outputs.png)
+
+- **Client & Server Zips (`<id>-client.zip`, `<id>-server.zip`):** Binaries downloaded on demand into `mods/`, `plugins/`, etc., using standardized `{Title}-{Platform}-{GameVersion}-{VersionNumber}.{ext}` naming. Failed downloads report for retry while succeeded files still package cleanly.
+- **Modrinth Modpack (`<id>.mrpack`):** Instant metadata manifest (`modrinth.index.json`) referencing Modrinth CDN URLs and hashes. Supports optional loader versions (Fabric, Quilt, Forge, NeoForge).
+- **Snapshot JSON (`<id>-instance.json`):** Full, lossless workspace state for offline restore.
+
+---
+
+# Development Guide
+
+## Quickstart
 
 Requires **Node.js 20+** and **Yarn**:
 
 ```bash
 yarn install     # Install dependencies
-yarn dev         # Start local Vite dev server
-yarn test --run  # Run Vitest suite
-yarn lint        # ESLint + architectural boundary checks
-yarn typecheck   # tsc --noEmit (strict + noUncheckedIndexedAccess)
-yarn build       # Build static production bundle to dist/
+yarn dev         # Start local dev server
+yarn test        # Run unit, integration, and UI tests
+yarn lint        # Run ESLint + boundary checks
+yarn typecheck   # Typecheck TypeScript
+yarn build       # Build static production bundle into dist/
 ```
 
-**GitHub Pages:** `vite.config.ts` uses relative asset paths (`base: './'`) by default (override via `VITE_BASE_PATH`). Pushing to `main` runs [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml), executing all verification gates before deploying `./dist`.
+**Deployment (GitHub Pages):** Builds as a portable static bundle with relative asset URLs (`base: './'`). Pushing to `main` automatically triggers CI checks and publishes to GitHub Pages via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
 
 ---
 
-## Documentation
+## Contributing & Agentic Development
 
-- **[`CONTRIBUTING.md`](CONTRIBUTING.md)** — Human developer guide, agentic workflow tips, and checklists for adding a **Platform** or **Project Type**.
-- **[`AGENTS.md`](AGENTS.md)** — Compact orientation, task routing table, and guardrails for coding agents.
-- **[`docs/concepts.md`](docs/concepts.md)** — Glossary, `Instance` model, resolution order, dependency closure, selection state machine, and status reference.
-- **[`docs/architecture.md`](docs/architecture.md)** — Clean architecture layers, ports, UI concurrency/performance invariants, and test rules.
-- **[`docs/output-formats.md`](docs/output-formats.md)** — `.zip` naming & collision rules, `instance.json` schema (`schemaVersion: 1`), and `.mrpack` mapping.
-- **[`docs/modrinth-api-notes.md`](docs/modrinth-api-notes.md)** — Modrinth API endpoints, `/v2/projects` classification rules, and rate-limit/batching behavior.
+We welcome contributions! Whether you are a human developer or steering an AI coding agent:
+
+- **[`CONTRIBUTING.md`](CONTRIBUTING.md):** Contributor setup, CI verification gates, agentic workflow guide, and checklists for adding platforms or project types.
+- **[`AGENTS.md`](AGENTS.md):** System-prompt-optimized routing guide with domain invariants and task playbooks for coding agents.
+- **Technical Reference Docs:**
+  - [`docs/concepts.md`](docs/concepts.md) — Ubiquitous language, resolution rules, selection state machine, and status tables.
+  - [`docs/architecture.md`](docs/architecture.md) — Layer boundaries, ports, UI concurrency, and testing conventions.
+  - [`docs/output-formats.md`](docs/output-formats.md) — Archive structures, file naming, and schema specs.
+  - [`docs/modrinth-api-notes.md`](docs/modrinth-api-notes.md) — Modrinth API endpoints, batching, and loader classification.
 
 ---
 
 ## License
 
-[MIT](LICENSE)
+Released under the [MIT License](LICENSE).
