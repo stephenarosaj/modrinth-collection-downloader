@@ -69,14 +69,32 @@ describe('resolver — usable version filtering & timestamp ordering', () => {
         },
       ],
     });
+    const fromNonPrimaryFilesArray = makeVersion({
+      id: 'v-files-non-primary',
+      file: null,
+      files: [
+        {
+          ...makeDefaultFileRef('proj-a', '3.0.0'),
+          primary: false,
+        },
+      ],
+    });
 
     expect(toUsableVersionRef(valid)?.id).toBe('v-valid');
     expect(toUsableVersionRef(noFile)).toBeNull();
     expect(toUsableVersionRef(mrpackFile)).toBeNull();
     expect(toUsableVersionRef(fromFilesArray)?.id).toBe('v-files-arr');
+    expect(toUsableVersionRef(fromNonPrimaryFilesArray)?.id).toBe('v-files-non-primary');
 
-    const usable = filterUsableVersions([valid, noFile, mrpackFile, fromFilesArray, valid]);
-    expect(usable.map((v) => v.id)).toEqual(['v-valid', 'v-files-arr']);
+    const usable = filterUsableVersions([
+      valid,
+      noFile,
+      mrpackFile,
+      fromFilesArray,
+      fromNonPrimaryFilesArray,
+      valid,
+    ]);
+    expect(usable.map((v) => v.id)).toEqual(['v-valid', 'v-files-arr', 'v-files-non-primary']);
   });
 
   it('orders versions strictly by publishedAt descending, never comparing version-number strings', () => {

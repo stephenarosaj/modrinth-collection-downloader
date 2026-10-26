@@ -521,6 +521,7 @@ interface EnvironmentCellProps {
   isFlashing: boolean;
   isRecomputing: boolean;
   isDependency?: boolean;
+  hasSelectedDependents?: boolean;
   chipTonesKey?: string;
   isolatedChipId?: string | null;
   requiredDeps?: readonly LinkedProjectRef[];
@@ -546,6 +547,7 @@ function areEnvCellPropsEqual(prev: EnvironmentCellProps, next: EnvironmentCellP
     prev.isFlashing === next.isFlashing &&
     prev.isRecomputing === next.isRecomputing &&
     (prev.isDependency ?? false) === (next.isDependency ?? false) &&
+    (prev.hasSelectedDependents ?? true) === (next.hasSelectedDependents ?? true) &&
     (prev.chipTonesKey ?? '') === (next.chipTonesKey ?? '') &&
     (prev.isolatedChipId ?? null) === (next.isolatedChipId ?? null) &&
     prev.requiresListTestId === next.requiresListTestId &&
@@ -575,6 +577,7 @@ const EnvironmentCell = memo(function EnvironmentCell({
   isFlashing,
   isRecomputing,
   isDependency = false,
+  hasSelectedDependents = true,
   chipTonesKey = '',
   isolatedChipId = null,
   requiredDeps = EMPTY_LINKED_REFS,
@@ -807,7 +810,15 @@ const EnvironmentCell = memo(function EnvironmentCell({
   const versionType = envState.version.versionType;
   const isPillDisabled = !isActive || isRecomputing;
   const isVisuallyChecked = isActive && envState.selection.on;
+  const isUnneededDependencyInEnv = isDependency && !hasSelectedDependents;
+  const isUnusedSelectedDep =
+    Boolean(cellStatus?.reasons.includes('UNUSED_DEPENDENCY_SELECTED')) ||
+    (isUnneededDependencyInEnv && envState.selection.on);
   const autoBadgeMeta = ENV_BADGE_TOOLTIP_META.selectionAuto(envLabel);
+  const unneededDepMeta = ENV_BADGE_TOOLTIP_META.dependencyUnneeded(
+    envLabel,
+    isVisuallyChecked && isUnusedSelectedDep,
+  );
   const fallbackBadgeMeta = ENV_BADGE_TOOLTIP_META.platformUnverified;
 
   return (
@@ -826,7 +837,9 @@ const EnvironmentCell = memo(function EnvironmentCell({
               <div
                 className={`badge env-select-all-token env-row-select-pill ${
                   isVisuallyChecked
-                    ? 'env-select-all-token-checked'
+                    ? isUnusedSelectedDep
+                      ? 'env-select-all-token-checked env-select-all-token-warning'
+                      : 'env-select-all-token-checked'
                     : 'env-select-all-token-unchecked'
                 } ${isPillDisabled ? 'env-select-all-token-disabled' : ''}`}
               >
@@ -891,6 +904,18 @@ const EnvironmentCell = memo(function EnvironmentCell({
                 description={supportMeta.description}
                 tone={supportMeta.tone}
               />
+              {isUnneededDependencyInEnv && (
+                <MetaBadgeWithTooltip
+                  className={`badge badge-dep-unneeded ${
+                    isVisuallyChecked && isUnusedSelectedDep ? 'badge-dep-unneeded-warning' : ''
+                  }`.trim()}
+                  label="not needed"
+                  category={`${envLabel} Dependency`}
+                  title={unneededDepMeta.title}
+                  description={unneededDepMeta.description}
+                  tone={unneededDepMeta.tone}
+                />
+              )}
               {envState.selection.on && envState.selection.source === 'auto' && (
                 <MetaBadgeWithTooltip
                   className="badge badge-selection-auto"
@@ -975,6 +1000,8 @@ interface EntryTableRowProps {
   serverFlashing: boolean;
   isRecomputing: boolean;
   isDependency?: boolean;
+  clientHasSelectedDependents?: boolean;
+  serverHasSelectedDependents?: boolean;
   isFocused?: boolean;
   clientChipTonesKey?: string;
   serverChipTonesKey?: string;
@@ -1014,6 +1041,8 @@ function areTableRowsEqual(a: TableRow, b: TableRow): boolean {
 function areEntryRowPropsEqual(prev: EntryTableRowProps, next: EntryTableRowProps): boolean {
   return (
     (prev.isDependency ?? false) === (next.isDependency ?? false) &&
+    (prev.clientHasSelectedDependents ?? true) === (next.clientHasSelectedDependents ?? true) &&
+    (prev.serverHasSelectedDependents ?? true) === (next.serverHasSelectedDependents ?? true) &&
     (prev.isFocused ?? false) === (next.isFocused ?? false) &&
     (prev.clientChipTonesKey ?? '') === (next.clientChipTonesKey ?? '') &&
     (prev.serverChipTonesKey ?? '') === (next.serverChipTonesKey ?? '') &&
@@ -1040,6 +1069,8 @@ const EntryTableRow = memo(function EntryTableRow({
   serverFlashing,
   isRecomputing,
   isDependency = false,
+  clientHasSelectedDependents = true,
+  serverHasSelectedDependents = true,
   isFocused = false,
   clientChipTonesKey = '',
   serverChipTonesKey = '',
@@ -1158,6 +1189,7 @@ const EntryTableRow = memo(function EntryTableRow({
         isFlashing={clientFlashing}
         isRecomputing={isRecomputing}
         isDependency={isDependency}
+        hasSelectedDependents={clientHasSelectedDependents}
         chipTonesKey={clientChipTonesKey}
         isolatedChipId={isolatedChipId}
         requiredDeps={clientRequiredDeps}
@@ -1189,6 +1221,7 @@ const EntryTableRow = memo(function EntryTableRow({
         isFlashing={serverFlashing}
         isRecomputing={isRecomputing}
         isDependency={isDependency}
+        hasSelectedDependents={serverHasSelectedDependents}
         chipTonesKey={serverChipTonesKey}
         isolatedChipId={isolatedChipId}
         requiredDeps={serverRequiredDeps}
@@ -1829,6 +1862,18 @@ export function EntryTables({
                           resolvedEntryStatuses,
                           tableRowById,
                         );
+                        const clientRefs = resolveRequiredByRefsForEnv(depRow, 'client');
+                        const serverRefs = resolveRequiredByRefsForEnv(depRow, 'server');
+                        const clientHasSelectedDependents = clientRefs.some(
+                          (ref) =>
+                            (tableRowById.get(ref.id)?.environments.client.selection.on ?? true) ===
+                            true,
+                        );
+                        const serverHasSelectedDependents = serverRefs.some(
+                          (ref) =>
+                            (tableRowById.get(ref.id)?.environments.server.selection.on ?? true) ===
+                            true,
+                        );
                         return (
                           <EntryTableRow
                             key={depRow.project.id}
@@ -1839,6 +1884,8 @@ export function EntryTables({
                             serverFlashing={flashingCells.has(`${depRow.project.id}:server`)}
                             isRecomputing={isRecomputing}
                             isDependency
+                            clientHasSelectedDependents={clientHasSelectedDependents}
+                            serverHasSelectedDependents={serverHasSelectedDependents}
                             isFocused={focusedProjectId === depRow.project.id}
                             clientChipTonesKey={clientKey}
                             serverChipTonesKey={serverKey}

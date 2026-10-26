@@ -68,6 +68,92 @@ export function toMrpackEnvSupport(support: Support, selected: boolean): MrpackE
   return 'optional';
 }
 
+interface DependencyLookupMaps {
+  /** For each parentId, IDs of entries that list `parentId` in `requiredBy`. */
+  reverseRequiredBy: Record<EnvironmentId, Map<string, string[]>>;
+  /** For each depId, IDs of entries that list `depId` in `dependencies`. */
+  reverseDependencies: Record<EnvironmentId, Map<string, string[]>>;
+  /** For each depId, references to entries that list `depId` as an optional dependency. */
+  reverseOptionalBy: Record<EnvironmentId, Map<string, LinkedProjectRef[]>>;
+}
+
+function buildDependencyLookupMaps(instance: Instance): DependencyLookupMaps {
+  const reverseRequiredBy: Record<EnvironmentId, Map<string, string[]>> = {
+    client: new Map<string, string[]>(),
+    server: new Map<string, string[]>(),
+  };
+  const reverseDependencies: Record<EnvironmentId, Map<string, string[]>> = {
+    client: new Map<string, string[]>(),
+    server: new Map<string, string[]>(),
+  };
+  const reverseOptionalBy: Record<EnvironmentId, Map<string, LinkedProjectRef[]>> = {
+    client: new Map<string, LinkedProjectRef[]>(),
+    server: new Map<string, LinkedProjectRef[]>(),
+  };
+
+  for (const env of ENVIRONMENTS) {
+    const reqByMap = reverseRequiredBy[env];
+    const depMap = reverseDependencies[env];
+    const optByMap = reverseOptionalBy[env];
+    const seenOptionalPair = new Set<string>();
+
+    for (const entry of instance.entries) {
+      const pid = entry.project.id;
+      const envState = entry.environments[env];
+
+      for (const parentId of envState.requiredBy) {
+        if (parentId === pid) {
+          continue;
+        }
+        let list = reqByMap.get(parentId);
+        if (!list) {
+          list = [];
+          reqByMap.set(parentId, list);
+        }
+        list.push(pid);
+      }
+
+      for (const depId of envState.dependencies) {
+        if (depId === pid) {
+          continue;
+        }
+        let list = depMap.get(depId);
+        if (!list) {
+          list = [];
+          depMap.set(depId, list);
+        }
+        list.push(pid);
+      }
+
+      for (const optId of extractOptionalDependencyIds(envState.version)) {
+        if (optId === pid) {
+          continue;
+        }
+        const pairKey = `${optId}:${pid}`;
+        if (seenOptionalPair.has(pairKey)) {
+          continue;
+        }
+        seenOptionalPair.add(pairKey);
+        let list = optByMap.get(optId);
+        if (!list) {
+          list = [];
+          optByMap.set(optId, list);
+        }
+        list.push({
+          id: pid,
+          title: entry.project.title,
+        });
+      }
+    }
+  }
+
+  return {
+    reverseRequiredBy,
+    reverseDependencies,
+    reverseOptionalBy,
+  };
+}
+
 /**
  * Computes the set of dependency project IDs that should be visible in the review tables:
  * "a dependency entry is always listed if any collection entry requires it in any environment
@@ -76,12 +162,14 @@ export function toMrpackEnvSupport(support: Support, selected: boolean): MrpackE
 function computeVisibleDependencyIds(
   instance: Instance,
   entryById: Map<string, Entry>,
+  lookupMaps: DependencyLookupMaps,
 ): Set<string> {
   const visible = new Set<string>();
 
   for (const env of ENVIRONMENTS) {
     const visited = new Set<string>();
     const queue: string[] = [];
+    const reqByMap = lookupMaps.reverseRequiredBy[env];
 
     for (const entry of instance.entries) {
       if (entry.origin === 'collection') {
@@ -108,9 +196,10 @@ function computeVisibleDependencyIds(
         nextIds.add(depId);
       }
 
-      for (const candidate of instance.entries) {
-        if (candidate.environments[env].requiredBy.includes(currentId)) {
-          nextIds.add(candidate.project.id);
+      const revReqBy = reqByMap.get(currentId);
+      if (revReqBy) {
+        for (const depId of revReqBy) {
+          nextIds.add(depId);
         }
       }
 
@@ -149,8 +238,8 @@ function computeVisibleDependencyIds(
  */
 function resolveRequiredByRefs(
   entry: Entry,
-  instance: Instance,
   entryById: Map<string, Entry>,
+  lookupMaps: DependencyLookupMaps,
 ): Record<EnvironmentId, LinkedProjectRef[]> {
   const result: Record<EnvironmentId, LinkedProjectRef[]> = {
     client: [],
@@ -159,14 +248,12 @@ function resolveRequiredByRefs(
 
   for (const env of ENVIRONMENTS) {
     const requiringIds: string[] = [...entry.environments[env].requiredBy];
-
-    for (const other of instance.entries) {
-      if (
-        other.project.id !== entry.project.id &&
-        other.environments[env].dependencies.includes(entry.project.id) &&
-        !requiringIds.includes(other.project.id)
-      ) {
-        requiringIds.push(other.project.id);
+    const revDeps = lookupMaps.reverseDependencies[env].get(entry.project.id);
+    if (revDeps) {
+      for (const otherId of revDeps) {
+        if (!requiringIds.includes(otherId)) {
+          requiringIds.push(otherId);
+        }
       }
     }
 
@@ -184,8 +271,8 @@ function resolveRequiredByRefs(
  */
 function resolveRequiredDependencies(
   entry: Entry,
-  instance: Instance,
   entryById: Map<string, Entry>,
+  lookupMaps: DependencyLookupMaps,
 ): Record<EnvironmentId, LinkedProjectRef[]> {
   const result: Record<EnvironmentId, LinkedProjectRef[]> = {
     client: [],
@@ -200,12 +287,10 @@ function resolveRequiredDependencies(
       depIds.add(depId);
     }
 
-    for (const other of instance.entries) {
-      if (
-        other.project.id !== entry.project.id &&
-        other.environments[env].requiredBy.includes(entry.project.id)
-      ) {
-        depIds.add(other.project.id);
+    const revReqBy = lookupMaps.reverseRequiredBy[env].get(entry.project.id);
+    if (revReqBy) {
+      for (const otherId of revReqBy) {
+        depIds.add(otherId);
       }
     }
 
@@ -248,35 +333,12 @@ function resolveOptionalDependencies(
  */
 function resolveOptionalByRefs(
   entry: Entry,
-  instance: Instance,
+  lookupMaps: DependencyLookupMaps,
 ): Record<EnvironmentId, LinkedProjectRef[]> {
-  const result: Record<EnvironmentId, LinkedProjectRef[]> = {
-    client: [],
-    server: [],
+  return {
+    client: lookupMaps.reverseOptionalBy.client.get(entry.project.id) ?? [],
+    server: lookupMaps.reverseOptionalBy.server.get(entry.project.id) ?? [],
   };
-
-  for (const env of ENVIRONMENTS) {
-    const refs: LinkedProjectRef[] = [];
-    const seen = new Set<string>();
-
-    for (const other of instance.entries) {
-      if (other.project.id === entry.project.id || seen.has(other.project.id)) {
-        continue;
-      }
-      const optIds = extractOptionalDependencyIds(other.environments[env].version);
-      if (optIds.includes(entry.project.id)) {
-        seen.add(other.project.id);
-        refs.push({
-          id: other.project.id,
-          title: other.project.title,
-        });
-      }
-    }
-
-    result[env] = refs;
-  }
-
-  return result;
 }
 
 /**
@@ -294,7 +356,8 @@ export function toTables(instance: Instance): TableModel[] {
   }
   registerKnownProjectTitles(instance.entries.map((e) => e.project));
 
-  const visibleDepIds = computeVisibleDependencyIds(instance, entryById);
+  const lookupMaps = buildDependencyLookupMaps(instance);
+  const visibleDepIds = computeVisibleDependencyIds(instance, entryById, lookupMaps);
   const tables: TableModel[] = [];
 
   for (const projectType of PROJECT_TYPE_ORDER) {
@@ -310,9 +373,9 @@ export function toTables(instance: Instance): TableModel[] {
         continue;
       }
 
-      const requiredByRefs = resolveRequiredByRefs(entry, instance, entryById);
-      const requiredDependencies = resolveRequiredDependencies(entry, instance, entryById);
-      const optionalByRefs = resolveOptionalByRefs(entry, instance);
+      const requiredByRefs = resolveRequiredByRefs(entry, entryById, lookupMaps);
+      const requiredDependencies = resolveRequiredDependencies(entry, entryById, lookupMaps);
+      const optionalByRefs = resolveOptionalByRefs(entry, lookupMaps);
       const optionalDependencies = resolveOptionalDependencies(entry, entryById);
 
       const row: TableRow = {

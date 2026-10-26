@@ -548,7 +548,7 @@ describe('Status symbols, tooltips, highlights, and accessibility', () => {
     });
     expect(coreLibServerChip).toHaveAttribute('data-chip-status', 'default');
 
-    // --- 9. REQUIRED_NOT_SELECTED (`warning`) ---
+    // --- 9. REQUIRED_NOT_SELECTED (`warning`) & UNUSED_DEPENDENCY_SELECTED (`warning` + gray/amber `not needed` chip) ---
     // Explicitly deselect Clean Mod on Client (support === 'required')
     const cleanModClientCb = screen.getByLabelText('Select Clean Mod for Client');
     fireEvent.click(cleanModClientCb);
@@ -565,6 +565,41 @@ describe('Status symbols, tooltips, highlights, and accessibility', () => {
     );
     expect(getEnvCell('mod-ok', 'client')).toHaveClass('env-cell-ring', 'env-cell-ring-warning');
     expect(getEnvCell('mod-ok', 'server')).not.toHaveClass('env-cell-ring');
+
+    // Now Clean Mod is deselected on Client, so Core Lib has 0 selected dependents on Client:
+    // While Core Lib is unselected on Client, its Client cell is OK (gray `not needed` badge, no warning ring)
+    const coreLibClientCell = getEnvCell('dep-selectable', 'client');
+    expect(coreLibRow).toHaveAttribute('data-row-status', 'ok');
+    expect(coreLibClientCell).toHaveAttribute('data-cell-status', 'ok');
+    expect(coreLibClientCell).not.toHaveClass('env-cell-ring');
+    const unneededBadgeOff = coreLibClientCell.querySelector('.badge-dep-unneeded');
+    expect(unneededBadgeOff).toBeTruthy();
+    expect(unneededBadgeOff).toHaveTextContent('not needed');
+    expect(unneededBadgeOff).not.toHaveClass('badge-dep-unneeded-warning');
+
+    // Selecting Core Lib on Client while Clean Mod is still deselected highlights Core Lib as amber (UNUSED_DEPENDENCY_SELECTED)
+    fireEvent.click(coreLibClientCb);
+    expect(coreLibRow).toHaveAttribute('data-row-status', 'warning');
+    expect(coreLibRow).toHaveClass('row-tint', 'row-tint-warning');
+    expect(coreLibClientCell).toHaveAttribute('data-cell-status', 'warning');
+    expect(coreLibClientCell).toHaveAttribute('data-cell-reasons', 'UNUSED_DEPENDENCY_SELECTED');
+    expect(coreLibClientCell).toHaveClass('env-cell-ring', 'env-cell-ring-warning');
+    expect(coreLibClientCell.querySelector('.badge-dep-unneeded')).toHaveClass(
+      'badge-dep-unneeded-warning',
+    );
+    expect(coreLibClientCell.querySelector('.env-row-select-pill')).toHaveClass(
+      'env-select-all-token-warning',
+    );
+    expect(within(coreLibRow).getByRole('tooltip')).toHaveTextContent(
+      'Client: Selected in this environment, but no selected entry requires it here.',
+    );
+    // Unchecking Core Lib on Client returns it to gray / OK
+    fireEvent.click(coreLibClientCb);
+    expect(coreLibRow).toHaveAttribute('data-row-status', 'ok');
+    expect(coreLibClientCell).toHaveAttribute('data-cell-status', 'ok');
+    expect(coreLibClientCell.querySelector('.badge-dep-unneeded')).not.toHaveClass(
+      'badge-dep-unneeded-warning',
+    );
 
     // --- 10. Mixed non-OK cell severities on the same row (`warning` on Client + `error` on Server) ---
     // Deselect Server Bridged Mod on Client while Server remains selected:

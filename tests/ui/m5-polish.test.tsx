@@ -721,9 +721,7 @@ describe('Error Formatting, Retry UX, Partial-Result Resilience, Empty States & 
   });
 
   describe('5. Performance Pass at 500 Rows', () => {
-    it(
-      'renders a 500-entry instance across all 5 tables and toggles individual and Select All checkboxes responsively',
-      async () => {
+    it('renders a 500-entry instance across all 5 tables and toggles individual and Select All checkboxes responsively', async () => {
       const client = buildM5FakeClient();
       const instance500 = build500EntryInstance();
       const serialized = serialize(instance500);
@@ -736,7 +734,7 @@ describe('Error Formatting, Retry UX, Partial-Result Resilience, Empty States & 
       const startRender = performance.now();
       fireEvent.change(importInput, { target: { files: [file] } });
 
-      await screen.findByRole('heading', { name: '500 Entry Scale Suite' });
+      await screen.findByText('500 Entry Scale Suite');
       const renderElapsedMs = performance.now() - startRender;
 
       const allRows = container.querySelectorAll('tr.entry-row');
@@ -744,10 +742,11 @@ describe('Error Formatting, Retry UX, Partial-Result Resilience, Empty States & 
       expect(renderElapsedMs).toBeLessThan(2000);
 
       // Enable Client environment so checkboxes are interactive
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Client environment' }));
+      const clientEnvCheckbox = container.querySelector('#toggle-env-client') as HTMLInputElement;
+      fireEvent.click(clientEnvCheckbox);
 
-      const firstModCheckbox = screen.getByLabelText(
-        'Select Project 000 for Client',
+      const firstModCheckbox = container.querySelector(
+        'input[aria-label="Select Project 000 for Client"]',
       ) as HTMLInputElement;
       expect(firstModCheckbox.checked).toBe(true);
 
@@ -759,8 +758,8 @@ describe('Error Formatting, Retry UX, Partial-Result Resilience, Empty States & 
       expect(singleToggleElapsedMs).toBeLessThan(2000);
 
       // Toggle Select All for Mods on Client
-      const selectAllModsClient = screen.getByLabelText(
-        'Select all Mods for Client',
+      const selectAllModsClient = container.querySelector(
+        'input[aria-label="Select all Mods for Client"]',
       ) as HTMLInputElement;
       const startBulkToggle = performance.now();
       fireEvent.click(selectAllModsClient);
@@ -768,7 +767,7 @@ describe('Error Formatting, Retry UX, Partial-Result Resilience, Empty States & 
 
       expect(firstModCheckbox.checked).toBe(true);
       expect(bulkToggleElapsedMs).toBeLessThan(2000);
-    }, 30000);
+    });
 
     it('isolates row and cell re-renders via React.memo when toggling a single row at 500 entries', () => {
       const instance500 = build500EntryInstance();

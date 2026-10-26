@@ -26,7 +26,6 @@ export interface TargetFormProps {
   activeCollectionId?: string | null;
   revertToken?: number;
   onSubmit: (values: TargetFormValues) => void;
-  onTargetChange?: (values: TargetFormValues) => void;
   onImportFile?: (file: File) => void | Promise<void>;
 }
 
@@ -53,7 +52,6 @@ export function TargetForm({
   activeCollectionId = null,
   revertToken = 0,
   onSubmit,
-  onTargetChange,
   onImportFile,
 }: TargetFormProps) {
   const [collectionInput, setCollectionInput] = useState('');
@@ -145,30 +143,6 @@ export function TargetForm({
   const handleRetryTags = useCallback(() => {
     setReloadNonce((n) => n + 1);
   }, []);
-
-  const notifyTargetChangeIfLoaded = (
-    nextGameVersion: string,
-    nextPlatform: string,
-    nextPreferStable: boolean,
-  ) => {
-    if (
-      !activeTarget ||
-      !activeCollectionId ||
-      !onTargetChange ||
-      !nextGameVersion ||
-      !nextPlatform
-    ) {
-      return;
-    }
-    setCollectionInput(activeCollectionId);
-    setValidationError(null);
-    onTargetChange({
-      collectionInput: activeCollectionId,
-      gameVersion: nextGameVersion,
-      platform: nextPlatform,
-      releasePreference: nextPreferStable ? 'stable' : 'newest',
-    });
-  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -282,9 +256,7 @@ export function TargetForm({
             id="game-version-select"
             value={gameVersion}
             onChange={(e) => {
-              const nextGameVersion = e.target.value;
-              setGameVersion(nextGameVersion);
-              notifyTargetChangeIfLoaded(nextGameVersion, platform, preferStable);
+              setGameVersion(e.target.value);
             }}
             disabled={!tagsReady || controlsDisabled}
           >
@@ -308,9 +280,7 @@ export function TargetForm({
             id="platform-select"
             value={platform}
             onChange={(e) => {
-              const nextPlatform = e.target.value;
-              setPlatform(nextPlatform);
-              notifyTargetChangeIfLoaded(gameVersion, nextPlatform, preferStable);
+              setPlatform(e.target.value);
             }}
             disabled={!tagsReady || controlsDisabled}
           >
@@ -336,9 +306,7 @@ export function TargetForm({
             type="checkbox"
             checked={preferStable}
             onChange={(e) => {
-              const nextPreferStable = e.target.checked;
-              setPreferStable(nextPreferStable);
-              notifyTargetChangeIfLoaded(gameVersion, platform, nextPreferStable);
+              setPreferStable(e.target.checked);
             }}
             disabled={controlsDisabled}
           />

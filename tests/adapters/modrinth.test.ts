@@ -391,7 +391,7 @@ describe('HttpModrinthClient — endpoints & fixture mapping', () => {
     expect(validateInstanceSchema(JSON.parse(json))).toEqual({ valid: true, errors: [] });
   });
 
-  it('maps versions whose files all have primary: false to file: null, and falls back when primary is undefined', async () => {
+  it('falls back to files[0] when all files have primary: false, and prefers primary: undefined over primary: false', async () => {
     const rawVersions: RawModrinthVersion[] = [
       {
         id: 'ver-all-false',
@@ -403,8 +403,8 @@ describe('HttpModrinthClient — endpoints & fixture mapping', () => {
         loaders: ['fabric'],
         files: [
           {
-            filename: 'sources.jar',
-            url: 'https://cdn.modrinth.com/sources.jar',
+            filename: 'BetterThirdPerson-Forge-1.16.4-1.5.0.jar',
+            url: 'https://cdn.modrinth.com/BetterThirdPerson-Forge-1.16.4-1.5.0.jar',
             size: 123,
             primary: false,
             hashes: { sha1: '111', sha512: '222' },
@@ -445,6 +445,17 @@ describe('HttpModrinthClient — endpoints & fixture mapping', () => {
         ],
         dependencies: [],
       },
+      {
+        id: 'ver-empty-files',
+        project_id: 'proj-f05',
+        version_number: '1.0.2',
+        version_type: 'release',
+        date_published: '2025-01-03T00:00:00Z',
+        game_versions: ['1.20.1'],
+        loaders: ['fabric'],
+        files: [],
+        dependencies: [],
+      },
     ];
 
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValueOnce(jsonResponse(rawVersions));
@@ -452,7 +463,13 @@ describe('HttpModrinthClient — endpoints & fixture mapping', () => {
 
     const versions = await client.getProjectVersions('proj-f05', { gameVersion: '1.20.1' });
 
-    expect(versions[0]?.file).toBeNull();
+    expect(versions[0]?.file).toEqual({
+      filename: 'BetterThirdPerson-Forge-1.16.4-1.5.0.jar',
+      url: 'https://cdn.modrinth.com/BetterThirdPerson-Forge-1.16.4-1.5.0.jar',
+      size: 123,
+      sha1: '111',
+      sha512: '222',
+    });
     expect(versions[0]?.files.map((f) => f.primary)).toEqual([false, false]);
 
     expect(versions[1]?.file).toEqual({
@@ -463,6 +480,8 @@ describe('HttpModrinthClient — endpoints & fixture mapping', () => {
       sha512: '888',
     });
     expect(versions[1]?.files.map((f) => f.primary)).toEqual([false, undefined]);
+
+    expect(versions[2]?.file).toBeNull();
   });
 
   it('getVersionsByIds batches IDs and skips network when empty', async () => {

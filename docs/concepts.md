@@ -121,8 +121,9 @@ Status is derived purely from `Instance` and `activeEnvironments`. Priority orde
 | `DEPENDENCY_UNAVAILABLE` | `error` (`!`) | `selection.on` and ≥1 required dep has `version === null` or `support === 'unsupported'` | `"A required dependency is unavailable in this environment."` |
 | `NEEDED_BUT_UNAVAILABLE` | `error` (`!`) | Required by ≥1 selected entry in this env, but `version === null` or `support === 'unsupported'` here | `"Required by a selected entry in this environment, but unavailable here."` |
 | `DEPENDENCY_NOT_SELECTED` | `warning` (`⚠`) | `selection.on` and ≥1 selectable required dep has `selection.on === false` | `"A required dependency is not selected in this environment."` |
-| `REQUIRED_NOT_SELECTED` | `warning` (`⚠`) | `support === 'required'` and `selection` is `{ on: false, source: 'user' }` | `"Marked as required for this environment, but explicitly deselected."` |
+| `REQUIRED_NOT_SELECTED` | `warning` (`⚠`) | `origin === 'collection'`, `support === 'required'`, and `selection` is `{ on: false, source: 'user' }` | `"Marked as required for this environment, but explicitly deselected."` |
 | `REQUIRED_DEPENDENCY_NOT_SELECTED` | `warning` (`⚠`) | Required by ≥1 selected entry in this env, selectable, and `selection.on === false` | `"Required by a selected entry in this environment, but not selected."` |
+| `UNUSED_DEPENDENCY_SELECTED` | `warning` (`⚠`) | `origin === 'dependency'`, required by 0 selected entries in this env, and `selection.on === true` | `"Selected in this environment, but no selected entry requires it here."` |
 | `PIN_CONFLICT` | `warning` (`⚠`) | ≥2 requiring entries in this env pin different compatible versions of this dep | `"Multiple entries pin different versions of this dependency; resolved to the newest compatible pin."` |
 | `PLATFORM_UNVERIFIED` | `warning` (`⚠`) | `resolution === 'game-version-fallback'` | `"Resolved via game-version fallback (version does not explicitly list a platform)."` |
 | `SUPPORT_UNKNOWN` | `unknown` (`?`) | `support === 'unknown'` | `"Environment support is unknown on Modrinth."` |

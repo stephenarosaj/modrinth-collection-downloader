@@ -284,6 +284,40 @@ describe('Status table rules — table-driven single-reason & priority tests', (
       expectedReasons: [],
     },
     {
+      name: 'unselected dependency with no selected requiring entry is ok (even if support === required and deselected by user)',
+      entries: [
+        makeEntry('dep-unneeded-off', {
+          origin: 'dependency',
+          server: {
+            support: 'required',
+            requiredBy: [],
+            selection: { on: false, source: 'user' },
+          },
+        }),
+      ],
+      targetId: 'dep-unneeded-off',
+      env: 'server',
+      expectedKind: 'ok',
+      expectedReasons: [],
+    },
+    {
+      name: 'UNUSED_DEPENDENCY_SELECTED (warning) when dependency is selected in an environment where no selected entry requires it',
+      entries: [
+        makeEntry('dep-unneeded-on', {
+          origin: 'dependency',
+          server: {
+            support: 'required',
+            requiredBy: [],
+            selection: { on: true, source: 'user' },
+          },
+        }),
+      ],
+      targetId: 'dep-unneeded-on',
+      env: 'server',
+      expectedKind: 'warning',
+      expectedReasons: ['UNUSED_DEPENDENCY_SELECTED'],
+    },
+    {
       name: 'REQUIRED_DEPENDENCY_NOT_SELECTED (warning) when selectable dependency is needed by selected parent and is off',
       entries: [
         makeEntry('parent', {

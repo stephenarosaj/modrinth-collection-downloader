@@ -555,7 +555,7 @@ describe('Selection and dependency auto-select', () => {
     ).toBe('Auto-deselected 2 server dependencies');
   });
 
-  it('re-resolves immediately on target change when selection matches default, and prompts with ConfirmReResolveDialog when selection differs from default', async () => {
+  it('waits for Load collection button click after target changes, re-resolving immediately when selection matches default and prompting with ConfirmReResolveDialog when selection differs from default', async () => {
     const client = buildM32FakeClient();
     await renderAndLoadM32Collection(client);
 
@@ -569,14 +569,20 @@ describe('Selection and dependency auto-select', () => {
     expect(gameVersionSelect.value).toBe('1.20.1');
     expect(preferStableCheckbox).toBeChecked();
 
-    // 1. Selections are still at initial defaults -> changing Game Version to 1.21.1 re-resolves immediately without confirm dialog
+    // 1. Changing Game Version to 1.21.1 does NOT immediately restart resolution until Load collection is clicked
     fireEvent.change(gameVersionSelect, { target: { value: '1.21.1' } });
+    const summaryRegion = screen.getByRole('region', { name: 'Collection summary' });
+    expect(within(summaryRegion).getByText('1.20.1')).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    // Clicking Load collection while selections are at initial defaults re-resolves immediately without confirm dialog
+    fireEvent.click(screen.getByRole('button', { name: 'Load collection' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     await screen.findByRole('heading', { name: 'M3.2 Selection Suite' });
-    const summaryRegion = screen.getByRole('region', { name: 'Collection summary' });
+    const summaryAfterReload = screen.getByRole('region', { name: 'Collection summary' });
     await waitFor(() => {
-      expect(within(summaryRegion).getByText('1.21.1')).toBeInTheDocument();
+      expect(within(summaryAfterReload).getByText('1.21.1')).toBeInTheDocument();
     });
 
     // 2. Now customize a selection so hasSelectionChangedFromDefault(instance) becomes true
@@ -585,11 +591,11 @@ describe('Selection and dependency auto-select', () => {
     fireEvent.click(betaClientCb);
     expect(betaClientCb).not.toBeChecked();
 
-    // 3. Edit collectionInput without submitting, then change Platform to 'neoforge':
-    //    ConfirmReResolveDialog opens, Cancel button receives initial focus,
-    //    and collectionInput is synced/reverted to the loaded collection ('col-m32')
-    fireEvent.change(collectionInput, { target: { value: 'unsubmitted-other-col' } });
+    // 3. Change Platform to 'neoforge': does not open ConfirmReResolveDialog until Load collection is clicked
     fireEvent.change(platformSelect, { target: { value: 'neoforge' } });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load collection' }));
 
     const dialog = await screen.findByRole('dialog');
     expect(dialog).toBeInTheDocument();
@@ -604,13 +610,16 @@ describe('Selection and dependency auto-select', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(platformSelect.value).toBe('fabric');
     expect(collectionInput.value).toBe('col-m32');
-    expect(within(summaryRegion).getByText('Fabric')).toBeInTheDocument();
+    expect(within(summaryAfterReload).getByText('Fabric')).toBeInTheDocument();
     expect(screen.getByLabelText('Select Beta Mod for Client')).not.toBeChecked();
 
-    // 5. Toggling "Prefer stable releases over newest alpha/beta" opens ConfirmReResolveDialog,
+    // 5. Toggling "Prefer stable releases over newest alpha/beta" and clicking Load collection opens ConfirmReResolveDialog,
     //    and pressing Escape closes the dialog and reverts the checkbox
     fireEvent.click(preferStableCheckbox);
     expect(preferStableCheckbox).not.toBeChecked();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load collection' }));
 
     const dialogPreferStable = await screen.findByRole('dialog');
     expect(within(dialogPreferStable).getByRole('button', { name: 'Cancel' })).toHaveFocus();
@@ -629,9 +638,10 @@ describe('Selection and dependency auto-select', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(collectionInput.value).toBe('col-m32');
 
-    // 7. Change Platform to 'neoforge' again and click Confirm Re-resolve ->
+    // 7. Change Platform to 'neoforge' again, click Load collection, and click Confirm Re-resolve ->
     //    re-resolves for NeoForge and resets selections to initial defaults (all selectable collection mods selected)
     fireEvent.change(platformSelect, { target: { value: 'neoforge' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Load collection' }));
     const dialog2 = await screen.findByRole('dialog');
     fireEvent.click(within(dialog2).getByRole('button', { name: 'Confirm Re-resolve' }));
 

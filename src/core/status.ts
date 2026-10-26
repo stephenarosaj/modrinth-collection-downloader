@@ -32,6 +32,7 @@ const REASON_KIND_MAP: Readonly<Record<Reason, Exclude<Kind, 'ok'>>> = {
   DEPENDENCY_NOT_SELECTED: 'warning',
   REQUIRED_NOT_SELECTED: 'warning',
   REQUIRED_DEPENDENCY_NOT_SELECTED: 'warning',
+  UNUSED_DEPENDENCY_SELECTED: 'warning',
   PIN_CONFLICT: 'warning',
   PLATFORM_UNVERIFIED: 'warning',
   SUPPORT_UNKNOWN: 'unknown',
@@ -45,6 +46,8 @@ export const REASON_MESSAGES: Readonly<Record<Reason, string>> = {
   REQUIRED_NOT_SELECTED: 'Marked as required for this environment, but explicitly deselected.',
   REQUIRED_DEPENDENCY_NOT_SELECTED:
     'Required by a selected entry in this environment, but not selected.',
+  UNUSED_DEPENDENCY_SELECTED:
+    'Selected in this environment, but no selected entry requires it here.',
   PIN_CONFLICT:
     'Multiple entries pin different versions of this dependency; resolved to the newest compatible pin.',
   PLATFORM_UNVERIFIED:
@@ -59,6 +62,7 @@ export const REASON_SHORT_TITLES: Readonly<Record<Reason, string>> = {
   DEPENDENCY_NOT_SELECTED: 'Unselected Dependency',
   REQUIRED_NOT_SELECTED: 'Explicitly Deselected',
   REQUIRED_DEPENDENCY_NOT_SELECTED: 'Required Dependency Unchecked',
+  UNUSED_DEPENDENCY_SELECTED: 'Unused Dependency Selected',
   PIN_CONFLICT: 'Version Pin Conflict',
   PLATFORM_UNVERIFIED: 'Unverified Platform',
   SUPPORT_UNKNOWN: 'Unknown Support',
@@ -92,6 +96,13 @@ export const ENV_BADGE_TOOLTIP_META = {
     title: 'Auto-Selected Dependency',
     description: `Automatically enabled because a selected project in the ${envLabel.toLowerCase()} environment requires it.`,
     tone: 'ok',
+  }),
+  dependencyUnneeded: (envLabel: string, selected: boolean): BadgeTooltipMeta => ({
+    title: selected ? REASON_SHORT_TITLES.UNUSED_DEPENDENCY_SELECTED : `Not Needed on ${envLabel}`,
+    description: selected
+      ? REASON_MESSAGES.UNUSED_DEPENDENCY_SELECTED
+      : `No selected project in the ${envLabel.toLowerCase()} environment requires this dependency.`,
+    tone: selected ? 'warning' : 'ok',
   }),
   versionType: {
     beta: {
@@ -214,28 +225,65 @@ function getRequiredDependencyIds(entry: Entry, env: EnvironmentId): string[] {
 }
 
 /**
- * Collects unique transitive required dependency project IDs for `entry` in `env`,
- * traversing both forward `dependencies` edges and reverse `requiredBy` edges.
+ * Builds a map of direct required dependency project IDs (`parentId -> Set<depId>`) for all entries in `env`,
+ * combining forward `dependencies` / `version.dependencies` edges and reverse `requiredBy` edges in O(N + E).
  */
-function getTransitiveRequiredDependencyIds(
-  entry: Entry,
-  env: EnvironmentId,
-  entryById: ReadonlyMap<string, Entry>,
+function buildDirectRequiredDepsByParent(
   allEntries: readonly Entry[],
-): string[] {
-  const visited = new Set<string>([entry.project.id]);
-  const queue: string[] = [...getRequiredDependencyIds(entry, env)];
+): Record<EnvironmentId, Map<string, Set<string>>> {
+  const result: Record<EnvironmentId, Map<string, Set<string>>> = {
+    client: new Map<string, Set<string>>(),
+    server: new Map<string, Set<string>>(),
+  };
 
-  for (const other of allEntries) {
-    if (
-      other.project.id !== entry.project.id &&
-      other.environments[env].requiredBy.includes(entry.project.id) &&
-      !queue.includes(other.project.id)
-    ) {
-      queue.push(other.project.id);
+  for (const env of ENVIRONMENTS) {
+    const map = result[env];
+    for (const entry of allEntries) {
+      let set = map.get(entry.project.id);
+      if (!set) {
+        set = new Set<string>();
+        map.set(entry.project.id, set);
+      }
+      for (const depId of getRequiredDependencyIds(entry, env)) {
+        if (depId !== entry.project.id) {
+          set.add(depId);
+        }
+      }
+    }
+
+    for (const entry of allEntries) {
+      for (const parentId of entry.environments[env].requiredBy) {
+        if (parentId === entry.project.id) {
+          continue;
+        }
+        let parentSet = map.get(parentId);
+        if (!parentSet) {
+          parentSet = new Set<string>();
+          map.set(parentId, parentSet);
+        }
+        parentSet.add(entry.project.id);
+      }
     }
   }
 
+  return result;
+}
+
+/**
+ * Collects unique transitive required dependency project IDs for `entry` in `env`
+ * using the precomputed direct dependency adjacency map.
+ */
+function getTransitiveRequiredDependencyIds(
+  entryId: string,
+  directDepsMap: ReadonlyMap<string, ReadonlySet<string>>,
+): string[] {
+  const initialDeps = directDepsMap.get(entryId);
+  if (!initialDeps || initialDeps.size === 0) {
+    return [];
+  }
+
+  const visited = new Set<string>([entryId]);
+  const queue: string[] = [...initialDeps];
   const result: string[] = [];
 
   while (queue.length > 0) {
@@ -246,9 +294,9 @@ function getTransitiveRequiredDependencyIds(
     visited.add(depId);
     result.push(depId);
 
-    const depEntry = entryById.get(depId);
-    if (depEntry) {
-      for (const nextDepId of getRequiredDependencyIds(depEntry, env)) {
+    const nextDeps = directDepsMap.get(depId);
+    if (nextDeps) {
+      for (const nextDepId of nextDeps) {
         if (!visited.has(nextDepId)) {
           queue.push(nextDepId);
         }
@@ -260,39 +308,36 @@ function getTransitiveRequiredDependencyIds(
 }
 
 /**
- * Checks whether `entry` is required (directly or transitively) in `env` by at least one currently selected entry.
+ * Computes the set of all project IDs in `env` that are required (directly or transitively)
+ * by at least one currently selected entry (`selection.on === true`).
  */
-function isNeededBySelectedEntry(
-  entry: Entry,
-  env: EnvironmentId,
-  entryById: ReadonlyMap<string, Entry>,
+function computeNeededBySelectedSet(
   allEntries: readonly Entry[],
-): boolean {
-  const state = entry.environments[env];
+  env: EnvironmentId,
+  directDepsMap: ReadonlyMap<string, ReadonlySet<string>>,
+  transitiveDepsByEntryId: ReadonlyMap<string, readonly string[]>,
+): ReadonlySet<string> {
+  const needed = new Set<string>();
 
-  for (const parentId of state.requiredBy) {
-    const parent = entryById.get(parentId);
-    if (parent && parent.environments[env].selection.on) {
-      return true;
-    }
-  }
-
-  for (const candidateParent of allEntries) {
-    if (!candidateParent.environments[env].selection.on) {
+  for (const entry of allEntries) {
+    if (!entry.environments[env].selection.on) {
       continue;
     }
-    const deps = getTransitiveRequiredDependencyIds(
-      candidateParent,
-      env,
-      entryById,
-      allEntries,
-    );
-    if (deps.includes(entry.project.id)) {
-      return true;
+    const directDeps = directDepsMap.get(entry.project.id);
+    if (directDeps) {
+      for (const depId of directDeps) {
+        needed.add(depId);
+      }
+    }
+    const transitiveDeps = transitiveDepsByEntryId.get(entry.project.id);
+    if (transitiveDeps) {
+      for (const depId of transitiveDeps) {
+        needed.add(depId);
+      }
     }
   }
 
-  return false;
+  return needed;
 }
 
 /**
@@ -368,6 +413,8 @@ function evaluateCellStatus(
   env: EnvironmentId,
   entryById: ReadonlyMap<string, Entry>,
   allEntries: readonly Entry[],
+  neededBySelectedSet: ReadonlySet<string>,
+  transitiveDepsByEntryId: ReadonlyMap<string, readonly string[]>,
   isActiveEnv: boolean,
 ): Status | null {
   if (!isActiveEnv || !isExportableProjectType(entry.project.type)) {
@@ -375,7 +422,7 @@ function evaluateCellStatus(
   }
 
   const state = entry.environments[env];
-  const neededBySelected = isNeededBySelectedEntry(entry, env, entryById, allEntries);
+  const neededBySelected = neededBySelectedSet.has(entry.project.id);
 
   // An unsupported cell has no status unless it is needed by a selected entry in this environment.
   if (state.support === 'unsupported') {
@@ -397,7 +444,7 @@ function evaluateCellStatus(
 
   // 2. DEPENDENCY_UNAVAILABLE (error): entry is selected and a required dependency has version === null or support === 'unsupported'
   if (state.selection.on) {
-    const depIds = getTransitiveRequiredDependencyIds(entry, env, entryById, allEntries);
+    const depIds = transitiveDepsByEntryId.get(entry.project.id) ?? [];
     const hasUnavailableDep = depIds.some((depId) => {
       const depEntry = entryById.get(depId);
       if (!depEntry) {
@@ -428,14 +475,24 @@ function evaluateCellStatus(
     reasons.push('NEEDED_BUT_UNAVAILABLE');
   }
 
-  // 4. REQUIRED_NOT_SELECTED (warning): support === 'required' and selection is off/user
-  if (state.support === 'required' && !state.selection.on && state.selection.source === 'user') {
+  // 4. REQUIRED_NOT_SELECTED (warning): collection entry with support === 'required' and selection is off/user
+  if (
+    entry.origin === 'collection' &&
+    state.support === 'required' &&
+    !state.selection.on &&
+    state.selection.source === 'user'
+  ) {
     reasons.push('REQUIRED_NOT_SELECTED');
   }
 
   // 5. REQUIRED_DEPENDENCY_NOT_SELECTED (warning): needed by >= 1 selected entry in this environment, cell is selectable, and selection is off
   if (neededBySelected && isSelectable(state) && !state.selection.on) {
     reasons.push('REQUIRED_DEPENDENCY_NOT_SELECTED');
+  }
+
+  // 6. UNUSED_DEPENDENCY_SELECTED (warning): dependency entry is selected in this environment, but no selected entry requires it here
+  if (entry.origin === 'dependency' && !neededBySelected && state.selection.on) {
+    reasons.push('UNUSED_DEPENDENCY_SELECTED');
   }
 
   // 6. PIN_CONFLICT (warning): multiple requiring versions in this environment pin different compatible versions
@@ -479,6 +536,45 @@ export function computeEntryStatus(
     entryById.set(entry.project.id, entry);
   }
 
+  const directDepsByEnv = buildDirectRequiredDepsByParent(instance.entries);
+  const transitiveDepsByEnv: Record<EnvironmentId, Map<string, readonly string[]>> = {
+    client: new Map<string, readonly string[]>(),
+    server: new Map<string, readonly string[]>(),
+  };
+
+  for (const env of ENVIRONMENTS) {
+    if (!activeSet.has(env)) {
+      continue;
+    }
+    const directMap = directDepsByEnv[env];
+    const transMap = transitiveDepsByEnv[env];
+    for (const entry of instance.entries) {
+      transMap.set(
+        entry.project.id,
+        getTransitiveRequiredDependencyIds(entry.project.id, directMap),
+      );
+    }
+  }
+
+  const neededBySelectedByEnv: Record<EnvironmentId, ReadonlySet<string>> = {
+    client: activeSet.has('client')
+      ? computeNeededBySelectedSet(
+          instance.entries,
+          'client',
+          directDepsByEnv.client,
+          transitiveDepsByEnv.client,
+        )
+      : new Set<string>(),
+    server: activeSet.has('server')
+      ? computeNeededBySelectedSet(
+          instance.entries,
+          'server',
+          directDepsByEnv.server,
+          transitiveDepsByEnv.server,
+        )
+      : new Set<string>(),
+  };
+
   const result = new Map<string, EntryStatus>();
 
   for (const entry of instance.entries) {
@@ -487,6 +583,8 @@ export function computeEntryStatus(
       'client',
       entryById,
       instance.entries,
+      neededBySelectedByEnv.client,
+      transitiveDepsByEnv.client,
       activeSet.has('client'),
     );
     const serverStatus = evaluateCellStatus(
@@ -494,6 +592,8 @@ export function computeEntryStatus(
       'server',
       entryById,
       instance.entries,
+      neededBySelectedByEnv.server,
+      transitiveDepsByEnv.server,
       activeSet.has('server'),
     );
 

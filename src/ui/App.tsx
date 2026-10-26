@@ -673,7 +673,6 @@ export function App({
             activeCollectionId={instance?.meta.source.collectionId ?? null}
             revertToken={revertToken}
             onSubmit={handleRequestLoadOrReResolve}
-            onTargetChange={handleRequestLoadOrReResolve}
             onImportFile={handleImportFile}
           />
           {importError && (

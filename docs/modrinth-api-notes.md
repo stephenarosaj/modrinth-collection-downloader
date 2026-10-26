@@ -10,7 +10,7 @@ Reference for the HTTP normalization, project classification, batching, and retr
 | :--- | :--- | :--- |
 | `GET /v3/collection/{id}` | `getCollection(id, opts)` | Collection `id`, `name`, and `projects: string[]` (v3-only endpoint). |
 | `GET /v2/projects?ids=["…"]` | `getProjects(ids, opts)` | Batched (`≤100` IDs/call). Used over `/v3/projects` because `/v3/projects` omits `client_side`/`server_side` and returns `environment: undefined` on non-mod projects. |
-| `GET /v2/project/{id}/version?game_versions=["…"]` (`&loaders=["…"]`) | `getProjectVersions(projectId, q, opts)` | Compatible versions, primary/secondary `files[]`, and `dependencies[]`. |
+| `GET /v2/project/{id}/version?game_versions=["…"]` (`&loaders=["…"]`) | `getProjectVersions(projectId, q, opts)` | Compatible versions, `files[]` (`primary === true` -> `primary === undefined` -> `files[0]` fallback), and `dependencies[]`. |
 | `GET /v2/versions?ids=["…"]` | `getVersionsByIds(ids, opts)` | Batched (`≤100` IDs/call) lookup for pinned dependency `versionId`s. |
 | `GET /v2/tag/game_version` | `getGameVersions(opts)` | Minecraft versions (filtered to `version_type === 'release'` in UI). |
 | `GET /v2/tag/loader` | `getPlatforms(opts)` | Platform tags (`name`, `icon`, `supported_project_types`). |

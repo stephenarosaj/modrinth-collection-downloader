@@ -115,6 +115,7 @@ function pickPrimaryFile(version: VersionInfo | VersionRef): FileRef | null {
     if (implicitPrimary) {
       return implicitPrimary;
     }
+    return version.files[0] ?? null;
   }
   return null;
 }

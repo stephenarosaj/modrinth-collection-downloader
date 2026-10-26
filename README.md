@@ -83,6 +83,7 @@ yarn test        # Run unit, integration, and UI tests
 yarn lint        # Run ESLint + boundary checks
 yarn typecheck   # Typecheck TypeScript
 yarn build       # Build static production bundle into dist/
+yarn deploy      # Run lint + typecheck + test + build, then publish ./dist to the gh-pages branch via gh-pages
 ```
 
 **Deployment (GitHub Pages):** Builds as a portable static bundle with relative asset URLs (`base: './'`). Pushing to `main` automatically triggers CI checks and publishes to GitHub Pages via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).

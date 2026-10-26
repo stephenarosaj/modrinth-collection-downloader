@@ -195,6 +195,8 @@ header p {
   background: rgba(248, 113, 113, 0.15);
   color: var(--error);
   border-color: rgba(248, 113, 113, 0.4);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* Alerts */
@@ -1016,9 +1018,17 @@ header p {
   border-color: rgba(27, 217, 106, 0.4);
 }
 
-.badge-selection-user-off {
+.badge-selection-user-off,
+.badge-dep-unneeded.badge-dep-unneeded-warning {
   color: var(--warn);
   border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.badge-dep-unneeded {
+  color: var(--text-muted);
+  border-color: var(--border);
+  background: var(--surface-2);
 }
 
 .sr-only {
@@ -1160,6 +1170,17 @@ header p {
   color: var(--accent);
 }
 
+.env-select-all-token-checked.env-select-all-token-warning {
+  border-color: rgba(251, 191, 36, 0.65);
+  background: rgba(251, 191, 36, 0.16);
+  color: var(--warn);
+}
+
+.env-select-all-token-checked.env-select-all-token-warning:hover:not(.env-select-all-token-disabled),
+.env-select-all-token-checked.env-select-all-token-warning:focus-within:not(.env-select-all-token-disabled) {
+  border-color: var(--warn);
+}
+
 .env-select-all-token-disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -1178,6 +1199,11 @@ header p {
 .env-select-all-token-checked .env-select-all-token-symbol,
 .env-select-all-token-indeterminate .env-select-all-token-symbol {
   background: var(--accent);
+  color: #0e1015;
+}
+
+.env-select-all-token-checked.env-select-all-token-warning .env-select-all-token-symbol {
+  background: var(--warn);
   color: #0e1015;
 }
 
@@ -1752,6 +1778,7 @@ tbody:last-of-type tr:last-child:not(:first-child) .status-tooltip {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-width: 0;
 }
 
 .export-bar-row {
@@ -1854,6 +1881,7 @@ tbody:last-of-type tr:last-child:not(:first-child) .status-tooltip {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
   padding: 12px 14px;
   background: var(--surface-2);
   border: 1px solid var(--border);
@@ -1865,9 +1893,20 @@ tbody:last-of-type tr:last-child:not(:first-child) .status-tooltip {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
+}
+
+.zip-export-progress-header .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .zip-export-progress-label {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 0.88rem;
   font-weight: 600;
 }

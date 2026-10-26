@@ -342,7 +342,10 @@ function mapRawVersion(raw: RawModrinthVersion): ModrinthVersionDetails {
   }));
 
   const primaryCandidate =
-    files.find((f) => f.primary === true) ?? files.find((f) => f.primary === undefined) ?? null;
+    files.find((f) => f.primary === true) ??
+    files.find((f) => f.primary === undefined) ??
+    files[0] ??
+    null;
   const file: FileRef | null = primaryCandidate
     ? {
         filename: primaryCandidate.filename,
